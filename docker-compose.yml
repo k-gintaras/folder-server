@@ -24,6 +24,7 @@ services:
     image: folder-server-app
     environment:
       PORT: ${APP_CONTAINER_PORT:-4000}
+      APP_HOST_PORT: ${APP_HOST_PORT:-4000}
       INDEX_FOLDER: /mnt/index-folder
       DB_HOST: postgres
       DB_PORT: ${DB_CONTAINER_PORT:-5432}

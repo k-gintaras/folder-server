@@ -4,23 +4,23 @@ import dotenv from "dotenv";
 import path from "path";
 import { initializeServer } from "./init-server";
 import multer from "multer";
-import { createFileRoutes } from "./routes/files";
-import { createTagRoutes } from "./routes/tags";
-import { createTagGroupRoutes } from "./routes/tagGroups";
-import { createTagGroupTagsRoutes } from "./routes/tagGroupTags";
-import { createTopicRoutes } from "./routes/topics";
-import { createTopicTagGroupsRoutes } from "./routes/topicTagGroups";
-import { createItemRoutes } from "./routes/items";
-import { createItemTagsRoutes } from "./routes/itemTags";
-import { createTopicItemsRoutes } from "./routes/topicItems";
-import { createBackupRoutes } from "./routes/backup";
+import fs from 'fs';
+import swaggerUi from 'swagger-ui-express';
+// import legacy routes only for those not yet migrated
+// All routes now handled by tsoa controllers
+import { RegisterRoutes } from './routes';
 import cors from "cors";
 
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
 
+const hostPort = Number(process.env.APP_HOST_PORT ?? process.env.PORT ?? 4000);
+const containerPort = Number(process.env.APP_CONTAINER_PORT ?? process.env.PORT ?? hostPort);
+const listenPort = Number(process.env.PORT ?? containerPort);
+
 const env = {
-  port: Number(process.env.PORT ?? 4000),
+  hostPort,
+  port: listenPort,
   indexFolder: process.env.INDEX_FOLDER ?? "public",
   db: {
     host: process.env.DB_HOST ?? "localhost",
@@ -51,7 +51,8 @@ app.get("/", (req, res) => {
   res.json({
     message: "Folder server is running",
     env: {
-      port: env.port,
+      hostPort: env.hostPort,
+      listenPort: env.port,
       indexFolder: indexRoot,
       db: env.db
     }
@@ -86,25 +87,32 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-app.use("/api/files", createFileRoutes(pool));
-app.use("/api/tags", createTagRoutes(pool));
-app.use("/api/tag-groups", createTagGroupRoutes(pool));
-app.use("/api/tag-group-tags", createTagGroupTagsRoutes(pool));
-app.use("/api/topics", createTopicRoutes(pool));
-app.use("/api/topic-tag-groups", createTopicTagGroupsRoutes(pool));
-app.use("/api/items", createItemRoutes(pool));
-console.log('Registering /api/items in server.ts');
-app.use("/api/item-tags", createItemTagsRoutes(pool));
-app.use("/api/topic-items", createTopicItemsRoutes(pool));
-app.use("/api/backup", createBackupRoutes(pool, indexRoot));
+// tsoa controllers handle /api/files, /api/items, /api/item-tags
+RegisterRoutes(app);
+// All API endpoints handled by tsoa controllers
+console.log('Registering tsoa controllers for all API endpoints');
 app.use("/served", express.static(indexRoot));
+
+// Serve generated Swagger UI if spec exists at dist/swagger.json
+try {
+  const swaggerPath = path.join(process.cwd(), 'dist', 'swagger.json');
+  if (fs.existsSync(swaggerPath)) {
+    const swaggerDoc = JSON.parse(fs.readFileSync(swaggerPath, 'utf8'));
+    app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerDoc));
+    console.log('Serving API docs at http://localhost:' + env.hostPort + '/api-docs');
+  } else {
+    console.warn('Swagger spec not found at dist/swagger.json. Run `npx tsoa spec` to generate it.');
+  }
+} catch (error) {
+  console.error('Failed to initialize Swagger UI:', (error as Error).message);
+}
 
 let server: ReturnType<typeof app.listen> | undefined;
 
 async function startServer() {
   await initializeServer(pool, indexRoot, true); // Force indexing on every server start to detect new files
-  server = app.listen(env.port, () => {
-    console.log(`Folder server listening on port ${env.port}, serving ${indexRoot}`);
+    server = app.listen(env.port, '0.0.0.0', () => {
+    console.log(`Folder server listening on port ${env.port} (host ${env.hostPort}), serving ${indexRoot}`);
   });
 }
 
