@@ -31,7 +31,7 @@ const env = {
   }
 };
 
-const indexRoot = path.resolve(process.cwd(), env.indexFolder);
+const indexRoot = path.isAbsolute(env.indexFolder) ? env.indexFolder : path.resolve(process.cwd(), env.indexFolder);
 const pool = new Pool({
   host: env.db.host,
   port: env.db.port,
