@@ -30,13 +30,14 @@ async function indexSingleItem(db, fullPath, rootDirectory, parentId = null) {
     const size = isDirectory ? null : stats.size;
     const lastModified = stats.mtime.toISOString();
 
-    const existing = await db.query('SELECT id FROM files WHERE path = $1 LIMIT 1', [relativePath]);
+    const existing = await db.query('SELECT id, type FROM files WHERE path = $1 LIMIT 1', [relativePath]);
     if (existing.rowCount > 0) {
-      // Check if the existing entry is a directory or file
-      const existingType = existing.rows[0].type;
-      if (existingType === 'directory' || isDirectory) {
-        return { id: existing.rows[0].id, status: 'already_exists', type };
-      }
+      // File already exists - update it instead of inserting
+      const existingId = existing.rows[0].id;
+      await db.query(
+        `UPDATE files SET size = $1, last_modified = $2, subtype = $3 WHERE id = $4`,
+        [size, lastModified, subtype, existingId]
+      );
 
       // Ensure the file is inserted into the items table if it doesn't exist
       if (!isDirectory) {
@@ -54,6 +55,8 @@ async function indexSingleItem(db, fullPath, rootDirectory, parentId = null) {
           console.error(`❌ Failed to ensure item for ${fileName}:`, error.message);
         }
       }
+
+      return { id: existingId, status: 'updated', type };
     }
 
     const insertResult = await db.query(
@@ -87,22 +90,24 @@ async function indexSingleItem(db, fullPath, rootDirectory, parentId = null) {
 }
 
 const scanDirectory = async (db, ROOT_DIRECTORY, dir, parentId = null) => {
-  const entries = fs.readdirSync(dir, { withFileTypes: true });
+  let entries;
+  try {
+    entries = fs.readdirSync(dir, { withFileTypes: true });
+  } catch (e) {
+    console.error(`❌ readdir failed for ${dir}:`, e.message);
+    return;
+  }
 
   for (const entry of entries) {
     const fullPath = path.join(dir, entry.name);
-
     try {
       const result = await indexSingleItem(db, fullPath, ROOT_DIRECTORY, parentId);
-
-      // If it's a directory, recurse into it
-      if (result.type === 'directory') {
-        await scanDirectory(db, ROOT_DIRECTORY, fullPath, result.id);
-      }
+      if (result.type === 'directory') await scanDirectory(db, ROOT_DIRECTORY, fullPath, result.id);
     } catch (error) {
       console.error(`Failed to index ${fullPath}:`, error?.message ?? error);
     }
   }
 };
+
 
 module.exports = { indexSingleItem, getFileSubtype, scanDirectory };

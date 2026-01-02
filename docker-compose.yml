@@ -7,7 +7,7 @@ services:
       POSTGRES_PASSWORD: ${DB_PASSWORD}
       POSTGRES_DB: ${DB_NAME}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "${DB_HOST_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
@@ -23,17 +23,19 @@ services:
       dockerfile: Dockerfile
     image: folder-server-app
     environment:
-      PORT: ${PORT}
+      PORT: ${APP_CONTAINER_PORT:-4000}
       INDEX_FOLDER: /mnt/index-folder
       DB_HOST: postgres
-      DB_PORT: 5432
+      DB_PORT: ${DB_CONTAINER_PORT:-5432}
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
       DB_NAME: ${DB_NAME}
     ports:
-      - "${PORT}:${PORT}"
+      - "${APP_HOST_PORT:-4000}:${APP_CONTAINER_PORT:-4000}"
     volumes:
-      - "${INDEX_FOLDER}:/mnt/index-folder"
+      - type: bind
+        source: "${INDEX_FOLDER}"
+        target: /mnt/index-folder
     depends_on:
       postgres:
         condition: service_healthy

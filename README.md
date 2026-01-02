@@ -11,6 +11,7 @@ PORT=4000
 INDEX_FOLDER=uploads
 DB_HOST=localhost
 DB_PORT=5432
+PG_PORT_HOST=5432
 DB_USER=postgres
 DB_PASSWORD=postgres
 DB_NAME=postgres
@@ -19,6 +20,7 @@ DB_NAME=postgres
 - `INDEX_FOLDER` is a path relative to the project root and is the directory that will be inspected and served at `/served`.
 - `PORT` is the port the Express server listens on.
 - The `DB_*` variables configure the Postgres connection pool.
+- `PG_PORT_HOST` is the host-side port you map to Postgres when using Docker Compose; change it if 5432 is taken.
 
 ## Scripts
 
