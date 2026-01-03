@@ -1,11 +1,14 @@
 import { Pool } from 'pg';
 import fs from 'fs/promises';
 import path from 'path';
+import { File, FileMoveResult } from '../models';
+
+
 
 export class FilesService {
   constructor(private pool: Pool, private indexFolder: string) {}
 
-  async getAllFiles() {
+  async getAllFiles(): Promise<File[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM files');
@@ -18,7 +21,7 @@ export class FilesService {
     }
   }
 
-  async getFileById(id: number) {
+  async getFileById(id: number): Promise<File | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM files WHERE id = $1', [id]);
@@ -31,7 +34,7 @@ export class FilesService {
     }
   }
 
-  async uploadFile(file: Express.Multer.File) {
+  async uploadFile(file: Express.Multer.File): Promise<File> {
     if (!file || !file.originalname) {
       throw new Error('Invalid file upload: file or filename missing');
     }
@@ -68,7 +71,7 @@ export class FilesService {
     }
   }
 
-  async deleteFile(id: number) {
+  async deleteFile(id: number): Promise<File | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('DELETE FROM files WHERE id = $1 RETURNING *', [id]);
@@ -93,7 +96,7 @@ export class FilesService {
     }
   }
 
-  async moveFile(fileId: number, newFolder: string) {
+  async moveFile(fileId: number, newFolder: string): Promise<File | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM files WHERE id = $1', [fileId]);
@@ -120,13 +123,13 @@ export class FilesService {
     }
   }
 
-  async moveMultiple(fileIds: number[], newFolder: string) {
+  async moveMultiple(fileIds: number[], newFolder: string): Promise<FileMoveResult[]> {
     if (!fileIds || fileIds.length === 0) {
       return [];
     }
 
     const client = await this.pool.connect();
-    const results = [];
+    const results: FileMoveResult[] = [];
     try {
       for (const fileId of fileIds) {
         try {

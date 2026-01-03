@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { TagGroupTag } from '../models';
 
 export class TagGroupTagsService {
   constructor(private pool: Pool) {}
 
-  async createTagGroupTag(data: { tagGroupId: number; tagId: number }) {
+  async createTagGroupTag(data: { tagGroupId: number; tagId: number }): Promise<TagGroupTag> {
     if (!data.tagGroupId || !data.tagId) {
       throw new Error('Both tagGroupId and tagId are required');
     }
@@ -34,7 +35,7 @@ export class TagGroupTagsService {
     }
   }
 
-  async getAllTagGroupTags() {
+  async getAllTagGroupTags(): Promise<TagGroupTag[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM tag_group_tags');
@@ -47,7 +48,7 @@ export class TagGroupTagsService {
     }
   }
 
-  async getTagGroupTag(tagGroupId: number, tagId: number) {
+  async getTagGroupTag(tagGroupId: number, tagId: number): Promise<TagGroupTag | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
@@ -63,7 +64,7 @@ export class TagGroupTagsService {
     }
   }
 
-  async deleteTagGroupTag(tagGroupId: number, tagId: number) {
+  async deleteTagGroupTag(tagGroupId: number, tagId: number): Promise<TagGroupTag | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(

@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, SuccessResponse } from 'tsoa';
 import { TopicTagGroupsService } from '../services/TopicTagGroupsService';
+import { TopicTagGroup } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -18,7 +19,7 @@ export class TopicTagGroupsController extends Controller {
    * Get all topic-tag-group relationships
    */
   @Get('/')
-  public async getTopicTagGroups(): Promise<any[]> {
+  public async getTopicTagGroups(): Promise<TopicTagGroup[]> {
     return topicTagGroupsService.getAllTopicTagGroups();
   }
 
@@ -26,8 +27,13 @@ export class TopicTagGroupsController extends Controller {
    * Get a specific topic-tag-group relationship
    */
   @Get('{topicId}/{tagGroupId}')
-  public async getTopicTagGroup(@Path() topicId: number, @Path() tagGroupId: number): Promise<any> {
-    return topicTagGroupsService.getTopicTagGroup(topicId, tagGroupId);
+  public async getTopicTagGroup(@Path() topicId: number, @Path() tagGroupId: number): Promise<TopicTagGroup | null> {
+    const topicTagGroup = await topicTagGroupsService.getTopicTagGroup(topicId, tagGroupId);
+    if (!topicTagGroup) {
+      this.setStatus(404);
+      return null;
+    }
+    return topicTagGroup;
   }
 
   /**
@@ -35,7 +41,7 @@ export class TopicTagGroupsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createTopicTagGroup(@Body() body: { topicId: number; tagGroupId: number }): Promise<any> {
+  public async createTopicTagGroup(@Body() body: { topicId: number; tagGroupId: number }): Promise<TopicTagGroup> {
     return topicTagGroupsService.createTopicTagGroup(body);
   }
 
@@ -43,9 +49,12 @@ export class TopicTagGroupsController extends Controller {
    * Delete a topic-tag-group relationship
    */
   @Delete('{topicId}/{tagGroupId}')
-  public async deleteTopicTagGroup(@Path() topicId: number, @Path() tagGroupId: number): Promise<{ message: string }> {
+  public async deleteTopicTagGroup(@Path() topicId: number, @Path() tagGroupId: number): Promise<TopicTagGroup | null> {
     const deleted = await topicTagGroupsService.deleteTopicTagGroup(topicId, tagGroupId);
-    if (!deleted) throw { status: 404, message: 'Topic-tag-group relationship not found' };
-    return { message: 'Topic-tag-group relationship deleted successfully' };
+    if (!deleted) {
+      this.setStatus(404);
+      return null;
+    }
+    return deleted;
   }
 }

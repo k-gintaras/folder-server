@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { Item } from '../models';
 
 export class ItemsService {
   constructor(private pool: Pool) {}
 
-  async createItem(data: { name: string; link: string; imageUrl: string; type: string }) {
+  async createItem(data: { name: string; link: string; imageUrl: string; type: string }): Promise<Item> {
     if (!data.name || !data.link) {
       throw new Error('Item name and link are required');
     }
@@ -23,7 +24,7 @@ export class ItemsService {
     }
   }
 
-  async getAllItems() {
+  async getAllItems(): Promise<Item[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM items');
@@ -36,7 +37,7 @@ export class ItemsService {
     }
   }
 
-  async getItemById(id: number) {
+  async getItemById(id: number): Promise<Item | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM items WHERE id = $1', [id]);
@@ -49,7 +50,7 @@ export class ItemsService {
     }
   }
 
-  async updateItem(id: number, data: { name: string; link: string; imageUrl: string; type: string }) {
+  async updateItem(id: number, data: { name: string; link: string; imageUrl: string; type: string }): Promise<Item | null> {
     if (!data.name || !data.link) {
       throw new Error('Item name and link are required');
     }
@@ -74,7 +75,7 @@ export class ItemsService {
     }
   }
 
-  async deleteItem(id: number) {
+  async deleteItem(id: number): Promise<Item | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('DELETE FROM items WHERE id = $1 RETURNING *', [id]);

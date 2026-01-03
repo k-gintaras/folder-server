@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Put, Route, SuccessResponse } from 'tsoa';
 import { TopicsService } from '../services/TopicsService';
+import { Topic } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -18,7 +19,7 @@ export class TopicsController extends Controller {
    * Get all topics
    */
   @Get('/')
-  public async getTopics(): Promise<any[]> {
+  public async getTopics(): Promise<Topic[]> {
     return topicsService.getAllTopics();
   }
 
@@ -26,8 +27,13 @@ export class TopicsController extends Controller {
    * Get a topic by ID
    */
   @Get('{id}')
-  public async getTopic(@Path() id: number): Promise<any> {
-    return topicsService.getTopicById(id);
+  public async getTopic(@Path() id: number): Promise<Topic | null> {
+    const topic = await topicsService.getTopicById(id);
+    if (!topic) {
+      this.setStatus(404);
+      return null;
+    }
+    return topic;
   }
 
   /**
@@ -35,7 +41,7 @@ export class TopicsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createTopic(@Body() body: { name: string; description: string }): Promise<any> {
+  public async createTopic(@Body() body: { name: string; description: string }): Promise<Topic> {
     return topicsService.createTopic(body);
   }
 
@@ -43,17 +49,25 @@ export class TopicsController extends Controller {
    * Update a topic by ID
    */
   @Put('{id}')
-  public async updateTopic(@Path() id: number, @Body() body: { name: string; description: string }): Promise<any> {
-    return topicsService.updateTopic(id, body);
+  public async updateTopic(@Path() id: number, @Body() body: { name: string; description: string }): Promise<Topic | null> {
+    const updated = await topicsService.updateTopic(id, body);
+    if (!updated) {
+      this.setStatus(404);
+      return null;
+    }
+    return updated;
   }
 
   /**
    * Delete a topic by ID
    */
   @Delete('{id}')
-  public async deleteTopic(@Path() id: number): Promise<{ message: string }> {
+  public async deleteTopic(@Path() id: number): Promise<Topic | null> {
     const deleted = await topicsService.deleteTopic(id);
-    if (!deleted) throw { status: 404, message: 'Topic not found' };
-    return { message: 'Topic deleted successfully' };
+    if (!deleted) {
+      this.setStatus(404);
+      return null;
+    }
+    return deleted;
   }
 }

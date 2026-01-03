@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { TopicItem } from '../models';
 
 export class TopicItemsService {
   constructor(private pool: Pool) {}
 
-  async createTopicItem(data: { topicId: number; itemId: number }) {
+  async createTopicItem(data: { topicId: number; itemId: number }): Promise<TopicItem> {
     if (!data.topicId || !data.itemId) {
       throw new Error('Both topicId and itemId are required');
     }
@@ -34,7 +35,7 @@ export class TopicItemsService {
     }
   }
 
-  async getAllTopicItems() {
+  async getAllTopicItems(): Promise<TopicItem[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM topic_items');
@@ -47,7 +48,7 @@ export class TopicItemsService {
     }
   }
 
-  async getTopicItem(topicId: number, itemId: number) {
+  async getTopicItem(topicId: number, itemId: number): Promise<TopicItem | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
@@ -63,7 +64,7 @@ export class TopicItemsService {
     }
   }
 
-  async deleteTopicItem(topicId: number, itemId: number) {
+  async deleteTopicItem(topicId: number, itemId: number): Promise<TopicItem | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(

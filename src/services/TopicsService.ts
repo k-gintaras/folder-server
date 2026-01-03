@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { Topic } from '../models';
 
 export class TopicsService {
   constructor(private pool: Pool) {}
 
-  async createTopic(data: { name: string; description: string }) {
+  async createTopic(data: { name: string; description: string }): Promise<Topic> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Topic name is required');
     }
@@ -30,7 +31,7 @@ export class TopicsService {
     }
   }
 
-  async getAllTopics() {
+  async getAllTopics(): Promise<Topic[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM topics');
@@ -43,7 +44,7 @@ export class TopicsService {
     }
   }
 
-  async getTopicById(id: number) {
+  async getTopicById(id: number): Promise<Topic | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM topics WHERE id = $1', [id]);
@@ -56,7 +57,7 @@ export class TopicsService {
     }
   }
 
-  async updateTopic(id: number, data: { name: string; description: string }) {
+  async updateTopic(id: number, data: { name: string; description: string }): Promise<Topic | null> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Topic name is required');
     }
@@ -88,7 +89,7 @@ export class TopicsService {
     }
   }
 
-  async deleteTopic(id: number) {
+  async deleteTopic(id: number): Promise<Topic | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('DELETE FROM topics WHERE id = $1 RETURNING *', [id]);

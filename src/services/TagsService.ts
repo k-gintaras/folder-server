@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { Tag } from '../models';
 
 export class TagsService {
   constructor(private pool: Pool) {}
 
-  async createTag(data: { group: string; name: string }) {
+  async createTag(data: { group: string; name: string }): Promise<Tag> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Tag name is required');
     }
@@ -33,7 +34,7 @@ export class TagsService {
     }
   }
 
-  async getAllTags() {
+  async getAllTags(): Promise<Tag[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM tags');
@@ -46,7 +47,7 @@ export class TagsService {
     }
   }
 
-  async getTagById(id: number) {
+  async getTagById(id: number): Promise<Tag | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM tags WHERE id = $1', [id]);
@@ -59,7 +60,7 @@ export class TagsService {
     }
   }
 
-  async updateTag(id: number, data: { group: string; name: string }) {
+  async updateTag(id: number, data: { group: string; name: string }): Promise<Tag | null> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Tag name is required');
     }
@@ -94,7 +95,7 @@ export class TagsService {
     }
   }
 
-  async deleteTag(id: number) {
+  async deleteTag(id: number): Promise<Tag | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('DELETE FROM tags WHERE id = $1 RETURNING *', [id]);

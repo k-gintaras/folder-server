@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, SuccessResponse } from 'tsoa';
 import { TopicItemsService } from '../services/TopicItemsService';
+import { TopicItem } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -18,7 +19,7 @@ export class TopicItemsController extends Controller {
    * Get all topic-item relationships
    */
   @Get('/')
-  public async getTopicItems(): Promise<any[]> {
+  public async getTopicItems(): Promise<TopicItem[]> {
     return topicItemsService.getAllTopicItems();
   }
 
@@ -26,8 +27,13 @@ export class TopicItemsController extends Controller {
    * Get a specific topic-item relationship
    */
   @Get('{topicId}/{itemId}')
-  public async getTopicItem(@Path() topicId: number, @Path() itemId: number): Promise<any> {
-    return topicItemsService.getTopicItem(topicId, itemId);
+  public async getTopicItem(@Path() topicId: number, @Path() itemId: number): Promise<TopicItem | null> {
+    const topicItem = await topicItemsService.getTopicItem(topicId, itemId);
+    if (!topicItem) {
+      this.setStatus(404);
+      return null;
+    }
+    return topicItem;
   }
 
   /**
@@ -35,7 +41,7 @@ export class TopicItemsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createTopicItem(@Body() body: { topicId: number; itemId: number }): Promise<any> {
+  public async createTopicItem(@Body() body: { topicId: number; itemId: number }): Promise<TopicItem> {
     return topicItemsService.createTopicItem(body);
   }
 
@@ -43,9 +49,12 @@ export class TopicItemsController extends Controller {
    * Delete a topic-item relationship
    */
   @Delete('{topicId}/{itemId}')
-  public async deleteTopicItem(@Path() topicId: number, @Path() itemId: number): Promise<{ message: string }> {
+  public async deleteTopicItem(@Path() topicId: number, @Path() itemId: number): Promise<TopicItem | null> {
     const deleted = await topicItemsService.deleteTopicItem(topicId, itemId);
-    if (!deleted) throw { status: 404, message: 'Topic-item relationship not found' };
-    return { message: 'Topic-item relationship deleted successfully' };
+    if (!deleted) {
+      this.setStatus(404);
+      return null;
+    }
+    return deleted;
   }
 }

@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { ItemTag } from '../models';
 
 export class ItemTagsService {
   constructor(private pool: Pool) {}
 
-  async createItemTag(data: { itemId: number; tagId: number }) {
+  async createItemTag(data: { itemId: number; tagId: number }): Promise<ItemTag> {
     if (!data.itemId || !data.tagId) {
       throw new Error('Both itemId and tagId are required');
     }
@@ -34,7 +35,7 @@ export class ItemTagsService {
     }
   }
 
-  async getAllItemTags() {
+  async getAllItemTags(): Promise<ItemTag[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM item_tags');
@@ -47,7 +48,7 @@ export class ItemTagsService {
     }
   }
 
-  async getItemTag(itemId: number, tagId: number) {
+  async getItemTag(itemId: number, tagId: number): Promise<ItemTag | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(
@@ -63,7 +64,7 @@ export class ItemTagsService {
     }
   }
 
-  async deleteItemTag(itemId: number, tagId: number) {
+  async deleteItemTag(itemId: number, tagId: number): Promise<ItemTag | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query(

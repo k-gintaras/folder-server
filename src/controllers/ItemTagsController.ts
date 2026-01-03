@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, SuccessResponse } from 'tsoa';
 import { ItemTagsService } from '../services/ItemTagsService';
+import { ItemTag } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -18,7 +19,7 @@ export class ItemTagsController extends Controller {
    * Get all item-tag relationships
    */
   @Get('/')
-  public async getItemTags(): Promise<any[]> {
+  public async getItemTags(): Promise<ItemTag[]> {
     return itemTagsService.getAllItemTags();
   }
 
@@ -26,8 +27,13 @@ export class ItemTagsController extends Controller {
    * Get a specific item-tag relationship
    */
   @Get('{itemId}/{tagId}')
-  public async getItemTag(@Path() itemId: number, @Path() tagId: number): Promise<any> {
-    return itemTagsService.getItemTag(itemId, tagId);
+  public async getItemTag(@Path() itemId: number, @Path() tagId: number): Promise<ItemTag | null> {
+    const itemTag = await itemTagsService.getItemTag(itemId, tagId);
+    if (!itemTag) {
+      this.setStatus(404);
+      return null;
+    }
+    return itemTag;
   }
 
   /**
@@ -35,7 +41,7 @@ export class ItemTagsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createItemTag(@Body() body: { itemId: number; tagId: number }): Promise<any> {
+  public async createItemTag(@Body() body: { itemId: number; tagId: number }): Promise<ItemTag> {
     return itemTagsService.createItemTag(body);
   }
 
@@ -43,9 +49,12 @@ export class ItemTagsController extends Controller {
    * Delete an item-tag relationship
    */
   @Delete('{itemId}/{tagId}')
-  public async deleteItemTag(@Path() itemId: number, @Path() tagId: number): Promise<{ message: string }> {
+  public async deleteItemTag(@Path() itemId: number, @Path() tagId: number): Promise<ItemTag | null> {
     const deleted = await itemTagsService.deleteItemTag(itemId, tagId);
-    if (!deleted) throw { status: 404, message: 'Item-tag relationship not found' };
-    return { message: 'Item-tag relationship deleted successfully' };
+    if (!deleted) {
+      this.setStatus(404);
+      return null;
+    }
+    return deleted;
   }
 }

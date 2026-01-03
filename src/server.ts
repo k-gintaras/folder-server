@@ -10,6 +10,7 @@ import swaggerUi from 'swagger-ui-express';
 // All routes now handled by tsoa controllers
 import { RegisterRoutes } from './routes';
 import cors from "cors";
+import { ViewModelsService } from "./services/ViewModelsService";
 
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
@@ -51,6 +52,8 @@ app.use(cors());
 
 const upload = multer({ dest: "uploads/" });
 
+const viewModelsService = new ViewModelsService(pool);
+
 
 app.get("/", (req, res) => {
   res.json({
@@ -90,6 +93,44 @@ app.get("/api/health", (req, res) => {
     status: "ok",
     timestamp: new Date().toISOString(),
   });
+});
+
+// View-model endpoints (hydrated responses)
+app.get("/api/view/tag-groups", async (req, res) => {
+  try {
+    const data = await viewModelsService.getTagGroupsWithTags();
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch tag groups with tags", details: (error as Error).message });
+  }
+});
+
+app.get("/api/view/topics/:id/schema", async (req, res) => {
+  try {
+    const topicId = Number(req.params.id);
+    const data = await viewModelsService.getTopicWithSchema(topicId);
+    if (!data) {
+      res.status(404).json({ error: "Topic not found" });
+      return;
+    }
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch topic schema", details: (error as Error).message });
+  }
+});
+
+app.get("/api/view/items/:id/tags", async (req, res) => {
+  try {
+    const itemId = Number(req.params.id);
+    const data = await viewModelsService.getItemWithTags(itemId);
+    if (!data) {
+      res.status(404).json({ error: "Item not found" });
+      return;
+    }
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: "Failed to fetch item with tags", details: (error as Error).message });
+  }
 });
 
 // tsoa controllers handle /api/files, /api/items, /api/item-tags

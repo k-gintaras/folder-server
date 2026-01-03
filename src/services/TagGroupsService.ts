@@ -1,9 +1,10 @@
 import { Pool } from 'pg';
+import { TagGroup } from '../models';
 
 export class TagGroupsService {
   constructor(private pool: Pool) {}
 
-  async createTagGroup(data: { name: string }) {
+  async createTagGroup(data: { name: string }): Promise<TagGroup> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Tag group name is required');
     }
@@ -30,7 +31,7 @@ export class TagGroupsService {
     }
   }
 
-  async getAllTagGroups() {
+  async getAllTagGroups(): Promise<TagGroup[]> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM tag_groups');
@@ -43,7 +44,7 @@ export class TagGroupsService {
     }
   }
 
-  async getTagGroupById(id: number) {
+  async getTagGroupById(id: number): Promise<TagGroup | undefined> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('SELECT * FROM tag_groups WHERE id = $1', [id]);
@@ -56,7 +57,7 @@ export class TagGroupsService {
     }
   }
 
-  async updateTagGroup(id: number, data: { name: string }) {
+  async updateTagGroup(id: number, data: { name: string }): Promise<TagGroup | null> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Tag group name is required');
     }
@@ -88,7 +89,7 @@ export class TagGroupsService {
     }
   }
 
-  async deleteTagGroup(id: number) {
+  async deleteTagGroup(id: number): Promise<TagGroup | null> {
     const client = await this.pool.connect();
     try {
       const result = await client.query('DELETE FROM tag_groups WHERE id = $1 RETURNING *', [id]);

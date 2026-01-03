@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, UploadedFile, SuccessResponse } from 'tsoa';
 import { FilesService } from '../services/FilesService';
+import { File, FileMoveResult } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -19,7 +20,7 @@ export class FilesController extends Controller {
    * Get all files
    */
   @Get('/')
-  public async getFiles(): Promise<any[]> {
+  public async getFiles(): Promise<File[]> {
     return filesService.getAllFiles();
   }
 
@@ -27,8 +28,13 @@ export class FilesController extends Controller {
    * Get a file by ID
    */
   @Get('{id}')
-  public async getFile(@Path() id: number): Promise<any> {
-    return filesService.getFileById(id);
+  public async getFile(@Path() id: number): Promise<File | null> {
+    const file = await filesService.getFileById(id);
+    if (!file) {
+      this.setStatus(404);
+      return null;
+    }
+    return file;
   }
 
   /**
@@ -36,7 +42,7 @@ export class FilesController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('upload')
-  public async uploadFile(@UploadedFile() file: Express.Multer.File): Promise<any> {
+  public async uploadFile(@UploadedFile() file: Express.Multer.File): Promise<File> {
     return filesService.uploadFile(file);
   }
 
@@ -44,28 +50,33 @@ export class FilesController extends Controller {
    * Delete a file by ID
    */
   @Delete('{id}')
-  public async deleteFile(@Path() id: number): Promise<{ status: string; file: any }> {
+  public async deleteFile(@Path() id: number): Promise<File | null> {
     const deleted = await filesService.deleteFile(id);
-    if (!deleted) throw { status: 404, message: 'File not found' };
-    return { status: 'deleted', file: deleted };
+    if (!deleted) {
+      this.setStatus(404);
+      return null;
+    }
+    return deleted;
   }
 
   /**
    * Move a file
    */
   @Post('move')
-  public async moveFile(@Body() body: { fileId: number; newFolder: string }): Promise<{ status: string; file: any }> {
+  public async moveFile(@Body() body: { fileId: number; newFolder: string }): Promise<File | null> {
     const moved = await filesService.moveFile(body.fileId, body.newFolder);
-    if (!moved) throw { status: 404, message: 'File not found' };
-    return { status: 'moved', file: moved };
+    if (!moved) {
+      this.setStatus(404);
+      return null;
+    }
+    return moved;
   }
 
   /**
    * Move multiple files
    */
   @Post('move-multiple')
-  public async moveMultiple(@Body() body: { fileIds: number[]; newFolder: string }): Promise<{ results: any[] }> {
-    const results = await filesService.moveMultiple(body.fileIds, body.newFolder);
-    return { results };
+  public async moveMultiple(@Body() body: { fileIds: number[]; newFolder: string }): Promise<FileMoveResult[]> {
+    return filesService.moveMultiple(body.fileIds, body.newFolder);
   }
 }

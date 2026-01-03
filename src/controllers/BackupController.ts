@@ -1,5 +1,5 @@
 import { Controller, Post, Route, SuccessResponse } from 'tsoa';
-import { BackupService } from '../services/BackupService';
+import { BackupService, BackupResult, BackupFailure } from '../services/BackupService';
 import { Pool } from 'pg';
 import path from 'path';
 
@@ -21,7 +21,20 @@ export class BackupController extends Controller {
    */
   @SuccessResponse('200', 'Backup successful')
   @Post('backup')
-  public async createBackup(): Promise<{ message: string; path: string }> {
-    return backupService.createBackup();
+  public async createBackup(): Promise<BackupResult> {
+    try {
+      const result = await backupService.createBackup();
+      if (!result.ok) {
+        this.setStatus(500);
+      }
+      return result;
+    } catch (error) {
+      this.setStatus(500);
+      const failure = error as BackupFailure;
+      if (failure && failure.ok === false) {
+        return failure;
+      }
+      return { ok: false, error: 'Failed to create backup', details: (error as Error).message };
+    }
   }
 }

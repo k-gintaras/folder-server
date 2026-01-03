@@ -1,5 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, SuccessResponse } from 'tsoa';
 import { TagGroupTagsService } from '../services/TagGroupTagsService';
+import { TagGroupTag } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -18,7 +19,7 @@ export class TagGroupTagsController extends Controller {
    * Get all tag-group-tag relationships
    */
   @Get('/')
-  public async getTagGroupTags(): Promise<any[]> {
+  public async getTagGroupTags(): Promise<TagGroupTag[]> {
     return tagGroupTagsService.getAllTagGroupTags();
   }
 
@@ -26,8 +27,13 @@ export class TagGroupTagsController extends Controller {
    * Get a specific tag-group-tag relationship
    */
   @Get('{tagGroupId}/{tagId}')
-  public async getTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<any> {
-    return tagGroupTagsService.getTagGroupTag(tagGroupId, tagId);
+  public async getTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<TagGroupTag | null> {
+    const tagGroupTag = await tagGroupTagsService.getTagGroupTag(tagGroupId, tagId);
+    if (!tagGroupTag) {
+      this.setStatus(404);
+      return null;
+    }
+    return tagGroupTag;
   }
 
   /**
@@ -35,7 +41,7 @@ export class TagGroupTagsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createTagGroupTag(@Body() body: { tagGroupId: number; tagId: number }): Promise<any> {
+  public async createTagGroupTag(@Body() body: { tagGroupId: number; tagId: number }): Promise<TagGroupTag> {
     return tagGroupTagsService.createTagGroupTag(body);
   }
 
@@ -43,9 +49,12 @@ export class TagGroupTagsController extends Controller {
    * Delete a tag-group-tag relationship
    */
   @Delete('{tagGroupId}/{tagId}')
-  public async deleteTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<{ message: string }> {
+  public async deleteTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<TagGroupTag | null> {
     const deleted = await tagGroupTagsService.deleteTagGroupTag(tagGroupId, tagId);
-    if (!deleted) throw { status: 404, message: 'Tag-group-tag relationship not found' };
-    return { message: 'Tag-group-tag relationship deleted successfully' };
+    if (!deleted) {
+      this.setStatus(404);
+      return null;
+    }
+    return deleted;
   }
 }
