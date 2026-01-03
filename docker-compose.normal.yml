@@ -25,7 +25,7 @@ services:
     environment:
       PORT: ${APP_CONTAINER_PORT:-4000}
       APP_HOST_PORT: ${APP_HOST_PORT:-4000}
-      INDEX_FOLDER: /mnt/index-folder
+      INDEX_FOLDER: /data/index-folder
       DB_HOST: postgres
       DB_PORT: ${DB_CONTAINER_PORT:-5432}
       DB_USER: ${DB_USER}
@@ -34,10 +34,11 @@ services:
     ports:
       - "${APP_HOST_PORT:-4000}:${APP_CONTAINER_PORT:-4000}"
     volumes:
-      - ${INDEX_FOLDER}:/mnt/index-folder
+      - index-folder:/data/index-folder
     depends_on:
       postgres:
         condition: service_healthy
 
 volumes:
   pgdata:
+  index-folder:

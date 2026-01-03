@@ -41,6 +41,11 @@ const pool = new Pool({
   max: 5
 });
 
+// Handle pool errors to prevent crashes
+pool.on('error', (err) => {
+  console.error('Unexpected database pool error:', err);
+});
+
 const app = express();
 app.use(cors());
 
@@ -110,16 +115,40 @@ try {
 let server: ReturnType<typeof app.listen> | undefined;
 
 async function startServer() {
-  await initializeServer(pool, indexRoot, true); // Force indexing on every server start to detect new files
+  try {
+    await initializeServer(pool, indexRoot, true); // Force indexing on every server start to detect new files
     server = app.listen(env.port, '0.0.0.0', () => {
-    console.log(`Folder server listening on port ${env.port} (host ${env.hostPort}), serving ${indexRoot}`);
-  });
+      console.log(`Folder server listening on port ${env.port} (host ${env.hostPort}), serving ${indexRoot}`);
+    });
+    
+    // Handle server errors
+    server.on('error', (err: Error) => {
+      console.error('Server error:', err);
+      if ((err as any).code === 'EADDRINUSE') {
+        console.error(`Port ${env.port} is already in use`);
+        process.exit(1);
+      }
+    });
+  } catch (error) {
+    console.error('Error during server initialization:', error);
+    throw error;
+  }
 }
 
 const shutdown = async () => {
-  await pool.end();
+  console.log('Shutting down gracefully...');
+  try {
+    await pool.end();
+  } catch (error) {
+    console.error('Error closing database pool:', error);
+  }
+  
   if (server) {
-    server.close(() => {
+    server.close((err) => {
+      if (err) {
+        console.error('Error closing server:', err);
+        process.exit(1);
+      }
       process.exit(0);
     });
   } else {
@@ -134,3 +163,19 @@ startServer().catch((error) => {
 
 process.on("SIGINT", shutdown);
 process.on("SIGTERM", shutdown);
+
+// Handle unhandled promise rejections
+process.on('unhandledRejection', (reason, promise) => {
+  console.error('Unhandled Rejection at:', promise, 'reason:', reason);
+  // Keep server running
+});
+
+// Handle uncaught exceptions
+process.on('uncaughtException', (error) => {
+  console.error('Uncaught Exception:', error);
+  // Keep server running for minor errors, but exit for critical ones
+  if (error.message?.includes('ECONNREFUSED') || error.message?.includes('ENOTFOUND')) {
+    console.error('Critical error detected, shutting down...');
+    shutdown();
+  }
+});

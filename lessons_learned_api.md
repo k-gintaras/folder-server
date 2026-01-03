@@ -42,3 +42,74 @@ We also worked on ensuring the Dockerized folder server API was accessible and c
 10. **Document Changes**: Keep a record of changes and their impact to streamline future debugging.
 
 By applying these lessons, we can streamline future development and debugging processes, saving time and reducing errors. We can also avoid similar issues and ensure a smoother development process in the future.
+
+## Critical Issue: USB Drive Mounting in Docker with Windows WSL2
+
+### Problem
+When running Docker containers on Windows with WSL2, files on an external USB drive (G:) became inaccessible from the containers. The error was:
+```
+Error: EINVAL: invalid argument, stat '/mnt/index-folder/2022/652372daa4229.mp4'
+```
+
+**Key Symptom**: Files worked fine when accessing the PC remotely via TeamViewer, but failed when accessing locally.
+
+### Root Causes (Multiple Issues)
+1. **Windows USB Selective Suspend**: Windows was automatically putting the USB port to sleep during idle periods
+2. **Docker Desktop's Flaky Mount Path**: Docker Desktop's automatic mount at `/run/desktop/mnt/host/g/` was unreliable with USB drives
+3. **Path Format Issues**: Windows backslashes in paths (`G:\Old Files`) vs Docker forward slashes (`G:/Old Files`)
+4. **Absolute Path Handling**: Server code didn't properly handle absolute paths set via environment variables
+
+### Solution Applied
+1. **Disabled USB Selective Suspend** in Windows Power Settings:
+   ```powershell
+   powercfg /SETACVALUEINDEX SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+   powercfg /SETDCVALUEINDEX SCHEME_CURRENT 2a737441-1930-4402-8d77-b2bebba308a3 48e6b7a6-50f5-4782-a5d4-53bb8f07e226 0
+   ```
+
+2. **Created Direct WSL2 Mount** instead of relying on Docker Desktop's automatic mounting:
+   ```powershell
+   wsl -u root sh -c "mkdir -p /mnt/g && mount -t drvfs G: /mnt/g"
+   ```
+
+3. **Updated docker-compose.yml** to use environment variable:
+   ```yaml
+   volumes:
+     - ${INDEX_FOLDER}:/mnt/index-folder
+   ```
+
+4. **Set INDEX_FOLDER in .env** with forward slashes:
+   ```
+   INDEX_FOLDER=G:/Old Files
+   ```
+
+5. **Fixed server.ts** to handle absolute paths properly:
+   ```typescript
+   const indexRoot = path.isAbsolute(env.indexFolder) ? env.indexFolder : path.resolve(process.cwd(), env.indexFolder);
+   ```
+
+6. **Created startup script** (`mount-and-start.ps1`) to mount before Docker start:
+   ```powershell
+   wsl -u root sh -c "mkdir -p /mnt/g && mount -t drvfs G: /mnt/g"
+   docker-compose up -d
+   ```
+
+### Why It Works Now
+- **Direct WSL mount** bypasses Docker Desktop's unreliable path translation
+- **USB Selective Suspend disabled** prevents the OS from putting the USB port to sleep
+- **Startup script** ensures the WSL mount is fresh before each Docker start
+- **Forward slashes and proper path handling** work across Windows and Docker boundaries
+- The mount persists for the lifetime of WSL until `wsl --shutdown` is called
+
+### Key Learnings
+1. **USB drives with Docker + WSL2 are fragile**: Don't rely on Docker Desktop's automatic mounting for USB volumes
+2. **Power management affects USB**: USB devices can be suspended by Windows, affecting Docker containers
+3. **Use direct WSL mounts**: For external drives on Windows with WSL2, mount directly in WSL before starting Docker
+4. **Environment variables need proper formatting**: Forward slashes work in both Windows and Docker paths
+5. **Create recovery scripts**: Always have a startup script that remounts/reinitializes critical resources
+
+### When It Fails Again
+If the issue recurs:
+1. Run the startup script: `.\mount-and-start.ps1`
+2. Or manually: `wsl --shutdown` then `mount-and-start.ps1`
+3. Check if USB is still connected and accessible from Windows Explorer
+4. Verify WSL mount with: `wsl -u root sh -c "ls -la /mnt/g"`

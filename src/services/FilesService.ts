@@ -10,6 +10,9 @@ export class FilesService {
     try {
       const result = await client.query('SELECT * FROM files');
       return result.rows;
+    } catch (error) {
+      console.error('Error fetching files:', error);
+      throw new Error(`Failed to fetch files: ${(error as Error).message}`);
     } finally {
       client.release();
     }
@@ -20,14 +23,32 @@ export class FilesService {
     try {
       const result = await client.query('SELECT * FROM files WHERE id = $1', [id]);
       return result.rows[0];
+    } catch (error) {
+      console.error(`Error fetching file ${id}:`, error);
+      throw new Error(`Failed to fetch file: ${(error as Error).message}`);
     } finally {
       client.release();
     }
   }
 
   async uploadFile(file: Express.Multer.File) {
+    if (!file || !file.originalname) {
+      throw new Error('Invalid file upload: file or filename missing');
+    }
+
     const targetPath = path.join(this.indexFolder, file.originalname);
-    await fs.rename(file.path, targetPath);
+    
+    try {
+      await fs.rename(file.path, targetPath);
+    } catch (error) {
+      console.error('Error moving uploaded file:', error);
+      // Cleanup temp file if it still exists
+      try {
+        await fs.unlink(file.path);
+      } catch {}
+      throw new Error(`Failed to move uploaded file: ${(error as Error).message}`);
+    }
+
     const client = await this.pool.connect();
     try {
       const result = await client.query(
@@ -35,6 +56,13 @@ export class FilesService {
         [file.originalname, 'file', file.size, new Date().toISOString(), file.mimetype]
       );
       return result.rows[0];
+    } catch (error) {
+      console.error('Error inserting file into database:', error);
+      // Cleanup uploaded file if DB insert fails
+      try {
+        await fs.unlink(targetPath);
+      } catch {}
+      throw new Error(`Failed to save file metadata: ${(error as Error).message}`);
     } finally {
       client.release();
     }
@@ -45,11 +73,21 @@ export class FilesService {
     try {
       const result = await client.query('DELETE FROM files WHERE id = $1 RETURNING *', [id]);
       if (result.rowCount === 0) return null;
+      
       const filePath = result.rows[0].path;
+      const fullPath = path.isAbsolute(filePath) ? filePath : path.join(this.indexFolder, filePath);
+      
       try {
-        await fs.unlink(filePath);
-      } catch {}
+        await fs.unlink(fullPath);
+      } catch (error) {
+        // File might not exist or permission denied - log but don't crash
+        console.warn(`Could not delete file ${fullPath}:`, (error as Error).message);
+      }
+      
       return result.rows[0];
+    } catch (error) {
+      console.error(`Error deleting file ${id}:`, error);
+      throw new Error(`Failed to delete file: ${(error as Error).message}`);
     } finally {
       client.release();
     }
@@ -60,36 +98,59 @@ export class FilesService {
     try {
       const result = await client.query('SELECT * FROM files WHERE id = $1', [fileId]);
       if (result.rowCount === 0) return null;
+      
       const file = result.rows[0];
-      const oldPath = file.path;
+      const oldPath = path.isAbsolute(file.path) ? file.path : path.join(this.indexFolder, file.path);
       const newPath = path.join(newFolder, path.basename(oldPath));
-      await fs.rename(oldPath, newPath);
+      
+      try {
+        await fs.rename(oldPath, newPath);
+      } catch (error) {
+        console.error(`Error moving file ${fileId}:`, error);
+        throw new Error(`Failed to move file: ${(error as Error).message}`);
+      }
+      
       await client.query('UPDATE files SET path = $1 WHERE id = $2', [newPath, fileId]);
       return { ...file, path: newPath };
+    } catch (error) {
+      console.error(`Error in moveFile for ${fileId}:`, error);
+      throw error;
     } finally {
       client.release();
     }
   }
 
   async moveMultiple(fileIds: number[], newFolder: string) {
+    if (!fileIds || fileIds.length === 0) {
+      return [];
+    }
+
     const client = await this.pool.connect();
     const results = [];
     try {
       for (const fileId of fileIds) {
-        const result = await client.query('SELECT * FROM files WHERE id = $1', [fileId]);
-        if (result.rowCount === 0) {
-          results.push({ fileId, status: 'not_found' });
-          continue;
-        }
-        const file = result.rows[0];
-        const oldPath = file.path;
-        const newPath = path.join(newFolder, path.basename(oldPath));
         try {
-          await fs.rename(oldPath, newPath);
-          await client.query('UPDATE files SET path = $1 WHERE id = $2', [newPath, fileId]);
-          results.push({ fileId, status: 'moved', newPath });
-        } catch (fsError) {
-          results.push({ fileId, status: 'error', message: (fsError as Error).message });
+          const result = await client.query('SELECT * FROM files WHERE id = $1', [fileId]);
+          if (result.rowCount === 0) {
+            results.push({ fileId, status: 'not_found' });
+            continue;
+          }
+          
+          const file = result.rows[0];
+          const oldPath = path.isAbsolute(file.path) ? file.path : path.join(this.indexFolder, file.path);
+          const newPath = path.join(newFolder, path.basename(oldPath));
+          
+          try {
+            await fs.rename(oldPath, newPath);
+            await client.query('UPDATE files SET path = $1 WHERE id = $2', [newPath, fileId]);
+            results.push({ fileId, status: 'moved', newPath });
+          } catch (fsError) {
+            console.error(`Error moving file ${fileId}:`, fsError);
+            results.push({ fileId, status: 'error', message: (fsError as Error).message });
+          }
+        } catch (dbError) {
+          console.error(`Database error for file ${fileId}:`, dbError);
+          results.push({ fileId, status: 'error', message: (dbError as Error).message });
         }
       }
       return results;
