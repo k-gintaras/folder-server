@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, UploadedFile, SuccessResponse } from 'tsoa';
 import { FilesService } from '../services/FilesService';
-import { File, FileMoveResult } from '../models';
+import { File, FileMoveResult, ApiError } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -28,11 +28,11 @@ export class FilesController extends Controller {
    * Get a file by ID
    */
   @Get('{id}')
-  public async getFile(@Path() id: number): Promise<File | null> {
+  public async getFile(@Path() id: number): Promise<File | ApiError> {
     const file = await filesService.getFileById(id);
     if (!file) {
       this.setStatus(404);
-      return null;
+      return { error: 'File not found' };
     }
     return file;
   }
@@ -42,41 +42,62 @@ export class FilesController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('upload')
-  public async uploadFile(@UploadedFile() file: Express.Multer.File): Promise<File> {
-    return filesService.uploadFile(file);
+  public async uploadFile(@UploadedFile() file: Express.Multer.File): Promise<File | ApiError> {
+    try {
+      this.setStatus(201);
+      return await filesService.uploadFile(file);
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to upload file', details: (error as Error).message };
+    }
   }
 
   /**
    * Delete a file by ID
    */
   @Delete('{id}')
-  public async deleteFile(@Path() id: number): Promise<File | null> {
-    const deleted = await filesService.deleteFile(id);
-    if (!deleted) {
-      this.setStatus(404);
-      return null;
+  public async deleteFile(@Path() id: number): Promise<File | ApiError> {
+    try {
+      const deleted = await filesService.deleteFile(id);
+      if (!deleted) {
+        this.setStatus(404);
+        return { error: 'File not found' };
+      }
+      return deleted;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to delete file', details: (error as Error).message };
     }
-    return deleted;
   }
 
   /**
    * Move a file
    */
   @Post('move')
-  public async moveFile(@Body() body: { fileId: number; newFolder: string }): Promise<File | null> {
-    const moved = await filesService.moveFile(body.fileId, body.newFolder);
-    if (!moved) {
-      this.setStatus(404);
-      return null;
+  public async moveFile(@Body() body: { fileId: number; newFolder: string }): Promise<File | ApiError> {
+    try {
+      const moved = await filesService.moveFile(body.fileId, body.newFolder);
+      if (!moved) {
+        this.setStatus(404);
+        return { error: 'File not found' };
+      }
+      return moved;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to move file', details: (error as Error).message };
     }
-    return moved;
   }
 
   /**
    * Move multiple files
    */
   @Post('move-multiple')
-  public async moveMultiple(@Body() body: { fileIds: number[]; newFolder: string }): Promise<FileMoveResult[]> {
-    return filesService.moveMultiple(body.fileIds, body.newFolder);
+  public async moveMultiple(@Body() body: { fileIds: number[]; newFolder: string }): Promise<FileMoveResult[] | ApiError> {
+    try {
+      return await filesService.moveMultiple(body.fileIds, body.newFolder);
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to move files', details: (error as Error).message };
+    }
   }
 }

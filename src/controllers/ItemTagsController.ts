@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, SuccessResponse } from 'tsoa';
 import { ItemTagsService } from '../services/ItemTagsService';
-import { ItemTag } from '../models';
+import { ItemTag, ApiError } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -27,11 +27,11 @@ export class ItemTagsController extends Controller {
    * Get a specific item-tag relationship
    */
   @Get('{itemId}/{tagId}')
-  public async getItemTag(@Path() itemId: number, @Path() tagId: number): Promise<ItemTag | null> {
+  public async getItemTag(@Path() itemId: number, @Path() tagId: number): Promise<ItemTag | ApiError> {
     const itemTag = await itemTagsService.getItemTag(itemId, tagId);
     if (!itemTag) {
       this.setStatus(404);
-      return null;
+      return { error: 'Item-tag relationship not found' };
     }
     return itemTag;
   }
@@ -41,20 +41,36 @@ export class ItemTagsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createItemTag(@Body() body: { itemId: number; tagId: number }): Promise<ItemTag> {
-    return itemTagsService.createItemTag(body);
+  public async createItemTag(@Body() body: { itemId: number; tagId: number }): Promise<ItemTag | ApiError> {
+    try {
+      this.setStatus(201);
+      return await itemTagsService.createItemTag(body);
+    } catch (error) {
+      const message = (error as Error).message;
+      if (message.includes('duplicate') || message.includes('already exists')) {
+        this.setStatus(409);
+        return { error: 'Item-tag relationship already exists', details: message };
+      }
+      this.setStatus(400);
+      return { error: 'Failed to create item-tag relationship', details: message };
+    }
   }
 
   /**
    * Delete an item-tag relationship
    */
   @Delete('{itemId}/{tagId}')
-  public async deleteItemTag(@Path() itemId: number, @Path() tagId: number): Promise<ItemTag | null> {
-    const deleted = await itemTagsService.deleteItemTag(itemId, tagId);
-    if (!deleted) {
-      this.setStatus(404);
-      return null;
+  public async deleteItemTag(@Path() itemId: number, @Path() tagId: number): Promise<ItemTag | ApiError> {
+    try {
+      const deleted = await itemTagsService.deleteItemTag(itemId, tagId);
+      if (!deleted) {
+        this.setStatus(404);
+        return { error: 'Item-tag relationship not found' };
+      }
+      return deleted;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to delete item-tag relationship', details: (error as Error).message };
     }
-    return deleted;
   }
 }

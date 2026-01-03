@@ -1,5 +1,6 @@
 import { Controller, Post, Route, SuccessResponse } from 'tsoa';
 import { BackupService, BackupResult, BackupFailure } from '../services/BackupService';
+import { ApiError } from '../models';
 import { Pool } from 'pg';
 import path from 'path';
 
@@ -21,20 +22,17 @@ export class BackupController extends Controller {
    */
   @SuccessResponse('200', 'Backup successful')
   @Post('backup')
-  public async createBackup(): Promise<BackupResult> {
+  public async createBackup(): Promise<BackupResult | ApiError> {
     try {
       const result = await backupService.createBackup();
       if (!result.ok) {
         this.setStatus(500);
+        return { error: 'Backup failed', details: result.error };
       }
       return result;
     } catch (error) {
       this.setStatus(500);
-      const failure = error as BackupFailure;
-      if (failure && failure.ok === false) {
-        return failure;
-      }
-      return { ok: false, error: 'Failed to create backup', details: (error as Error).message };
+      return { error: 'Failed to create backup', details: (error as Error).message };
     }
   }
 }

@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Put, Route, SuccessResponse } from 'tsoa';
 import { TagGroupsService } from '../services/TagGroupsService';
-import { TagGroup } from '../models';
+import { TagGroup, ApiError } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -27,11 +27,11 @@ export class TagGroupsController extends Controller {
    * Get a tag group by ID
    */
   @Get('{id}')
-  public async getTagGroup(@Path() id: number): Promise<TagGroup | null> {
+  public async getTagGroup(@Path() id: number): Promise<TagGroup | ApiError> {
     const tagGroup = await tagGroupsService.getTagGroupById(id);
     if (!tagGroup) {
       this.setStatus(404);
-      return null;
+      return { error: 'Tag group not found' };
     }
     return tagGroup;
   }
@@ -41,33 +41,54 @@ export class TagGroupsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createTagGroup(@Body() body: { name: string }): Promise<TagGroup> {
-    return tagGroupsService.createTagGroup(body);
+  public async createTagGroup(@Body() body: { name: string }): Promise<TagGroup | ApiError> {
+    try {
+      this.setStatus(201);
+      return await tagGroupsService.createTagGroup(body);
+    } catch (error) {
+      const message = (error as Error).message;
+      if (message.includes('duplicate') || message.includes('already exists')) {
+        this.setStatus(409);
+        return { error: 'Tag group already exists', details: message };
+      }
+      this.setStatus(500);
+      return { error: 'Failed to create tag group', details: message };
+    }
   }
 
   /**
    * Update a tag group by ID
    */
   @Put('{id}')
-  public async updateTagGroup(@Path() id: number, @Body() body: { name: string }): Promise<TagGroup | null> {
-    const updated = await tagGroupsService.updateTagGroup(id, body);
-    if (!updated) {
-      this.setStatus(404);
-      return null;
+  public async updateTagGroup(@Path() id: number, @Body() body: { name: string }): Promise<TagGroup | ApiError> {
+    try {
+      const updated = await tagGroupsService.updateTagGroup(id, body);
+      if (!updated) {
+        this.setStatus(404);
+        return { error: 'Tag group not found' };
+      }
+      return updated;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to update tag group', details: (error as Error).message };
     }
-    return updated;
   }
 
   /**
    * Delete a tag group by ID
    */
   @Delete('{id}')
-  public async deleteTagGroup(@Path() id: number): Promise<TagGroup | null> {
-    const deleted = await tagGroupsService.deleteTagGroup(id);
-    if (!deleted) {
-      this.setStatus(404);
-      return null;
+  public async deleteTagGroup(@Path() id: number): Promise<TagGroup | ApiError> {
+    try {
+      const deleted = await tagGroupsService.deleteTagGroup(id);
+      if (!deleted) {
+        this.setStatus(404);
+        return { error: 'Tag group not found' };
+      }
+      return deleted;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to delete tag group', details: (error as Error).message };
     }
-    return deleted;
   }
 }

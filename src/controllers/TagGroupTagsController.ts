@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Route, SuccessResponse } from 'tsoa';
 import { TagGroupTagsService } from '../services/TagGroupTagsService';
-import { TagGroupTag } from '../models';
+import { TagGroupTag, ApiError } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -27,11 +27,11 @@ export class TagGroupTagsController extends Controller {
    * Get a specific tag-group-tag relationship
    */
   @Get('{tagGroupId}/{tagId}')
-  public async getTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<TagGroupTag | null> {
+  public async getTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<TagGroupTag | ApiError> {
     const tagGroupTag = await tagGroupTagsService.getTagGroupTag(tagGroupId, tagId);
     if (!tagGroupTag) {
       this.setStatus(404);
-      return null;
+      return { error: 'Tag-group-tag relationship not found' };
     }
     return tagGroupTag;
   }
@@ -41,20 +41,36 @@ export class TagGroupTagsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createTagGroupTag(@Body() body: { tagGroupId: number; tagId: number }): Promise<TagGroupTag> {
-    return tagGroupTagsService.createTagGroupTag(body);
+  public async createTagGroupTag(@Body() body: { tagGroupId: number; tagId: number }): Promise<TagGroupTag | ApiError> {
+    try {
+      this.setStatus(201);
+      return await tagGroupTagsService.createTagGroupTag(body);
+    } catch (error) {
+      const message = (error as Error).message;
+      if (message.includes('duplicate') || message.includes('already exists')) {
+        this.setStatus(409);
+        return { error: 'Tag-group-tag relationship already exists', details: message };
+      }
+      this.setStatus(400);
+      return { error: 'Failed to create tag-group-tag relationship', details: message };
+    }
   }
 
   /**
    * Delete a tag-group-tag relationship
    */
   @Delete('{tagGroupId}/{tagId}')
-  public async deleteTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<TagGroupTag | null> {
-    const deleted = await tagGroupTagsService.deleteTagGroupTag(tagGroupId, tagId);
-    if (!deleted) {
-      this.setStatus(404);
-      return null;
+  public async deleteTagGroupTag(@Path() tagGroupId: number, @Path() tagId: number): Promise<TagGroupTag | ApiError> {
+    try {
+      const deleted = await tagGroupTagsService.deleteTagGroupTag(tagGroupId, tagId);
+      if (!deleted) {
+        this.setStatus(404);
+        return { error: 'Tag-group-tag relationship not found' };
+      }
+      return deleted;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to delete tag-group-tag relationship', details: (error as Error).message };
     }
-    return deleted;
   }
 }

@@ -1,7 +1,7 @@
 import { Controller, Get, Path, Route } from 'tsoa';
 import { Pool } from 'pg';
 import { ViewModelsService } from '../services/ViewModelsService';
-import { ItemWithTags, TagGroupWithTags, TopicWithSchema } from '../models';
+import { ItemWithTags, TagGroupWithTags, TopicWithSchema, ApiError } from '../models';
 
 const pool = new Pool({
   host: process.env.DB_HOST ?? 'localhost',
@@ -28,15 +28,35 @@ export class ViewModelsController extends Controller {
    * Get a topic with its tag group schema
    */
   @Get('topics/{id}/schema')
-  public async getTopicWithSchema(@Path() id: number): Promise<TopicWithSchema | null> {
-    return viewModelsService.getTopicWithSchema(id);
+  public async getTopicWithSchema(@Path() id: number): Promise<TopicWithSchema | ApiError> {
+    try {
+      const result = await viewModelsService.getTopicWithSchema(id);
+      if (!result) {
+        this.setStatus(404);
+        return { error: 'Topic not found' };
+      }
+      return result;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to retrieve topic schema', details: (error as Error).message };
+    }
   }
 
   /**
    * Get an item with its tags
    */
   @Get('items/{id}/tags')
-  public async getItemWithTags(@Path() id: number): Promise<ItemWithTags | null> {
-    return viewModelsService.getItemWithTags(id);
+  public async getItemWithTags(@Path() id: number): Promise<ItemWithTags | ApiError> {
+    try {
+      const result = await viewModelsService.getItemWithTags(id);
+      if (!result) {
+        this.setStatus(404);
+        return { error: 'Item not found' };
+      }
+      return result;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to retrieve item with tags', details: (error as Error).message };
+    }
   }
 }

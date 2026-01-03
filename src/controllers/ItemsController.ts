@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Path, Post, Put, Route, SuccessResponse } from 'tsoa';
 import { ItemsService } from '../services/ItemsService';
-import { Item } from '../models';
+import { Item, ApiError } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -27,11 +27,11 @@ export class ItemsController extends Controller {
    * Get an item by ID
    */
   @Get('{id}')
-  public async getItem(@Path() id: number): Promise<Item | null> {
+  public async getItem(@Path() id: number): Promise<Item | ApiError> {
     const item = await itemsService.getItemById(id);
     if (!item) {
       this.setStatus(404);
-      return null;
+      return { error: 'Item not found' };
     }
     return item;
   }
@@ -41,33 +41,54 @@ export class ItemsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createItem(@Body() body: { name: string; link: string; imageUrl: string; type: string }): Promise<Item> {
-    return itemsService.createItem(body);
+  public async createItem(@Body() body: { name: string; link: string; imageUrl: string; type: string }): Promise<Item | ApiError> {
+    try {
+      this.setStatus(201);
+      return await itemsService.createItem(body);
+    } catch (error) {
+      const message = (error as Error).message;
+      if (message.includes('duplicate') || message.includes('already exists')) {
+        this.setStatus(409);
+        return { error: 'Item already exists', details: message };
+      }
+      this.setStatus(500);
+      return { error: 'Failed to create item', details: message };
+    }
   }
 
   /**
    * Update an item by ID
    */
   @Put('{id}')
-  public async updateItem(@Path() id: number, @Body() body: { name: string; link: string; imageUrl: string; type: string }): Promise<Item | null> {
-    const updated = await itemsService.updateItem(id, body);
-    if (!updated) {
-      this.setStatus(404);
-      return null;
+  public async updateItem(@Path() id: number, @Body() body: { name: string; link: string; imageUrl: string; type: string }): Promise<Item | ApiError> {
+    try {
+      const updated = await itemsService.updateItem(id, body);
+      if (!updated) {
+        this.setStatus(404);
+        return { error: 'Item not found' };
+      }
+      return updated;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to update item', details: (error as Error).message };
     }
-    return updated;
   }
 
   /**
    * Delete an item by ID
    */
   @Delete('{id}')
-  public async deleteItem(@Path() id: number): Promise<Item | null> {
-    const deleted = await itemsService.deleteItem(id);
-    if (!deleted) {
-      this.setStatus(404);
-      return null;
+  public async deleteItem(@Path() id: number): Promise<Item | ApiError> {
+    try {
+      const deleted = await itemsService.deleteItem(id);
+      if (!deleted) {
+        this.setStatus(404);
+        return { error: 'Item not found' };
+      }
+      return deleted;
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to delete item', details: (error as Error).message };
     }
-    return deleted;
   }
 }

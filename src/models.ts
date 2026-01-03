@@ -38,6 +38,13 @@ export interface HealthResponse {
   timestamp: string;
 }
 
+// -------------------- Error models --------------------
+
+export interface ApiError {
+  error: string;
+  details?: string;
+}
+
 // -------------------- Base (table) models --------------------
 // These mirror SELECT * FROM <table> exactly.
 
