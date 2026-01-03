@@ -6,11 +6,9 @@ import { initializeServer } from "./init-server";
 import multer from "multer";
 import fs from 'fs';
 import swaggerUi from 'swagger-ui-express';
-// import legacy routes only for those not yet migrated
 // All routes now handled by tsoa controllers
 import { RegisterRoutes } from './routes';
 import cors from "cors";
-import { ViewModelsService } from "./services/ViewModelsService";
 
 
 dotenv.config({ path: path.resolve(process.cwd(), ".env") });
@@ -51,8 +49,6 @@ const app = express();
 app.use(cors());
 
 const upload = multer({ dest: "uploads/" });
-
-const viewModelsService = new ViewModelsService(pool);
 
 
 app.get("/", (req, res) => {
@@ -95,48 +91,8 @@ app.get("/api/health", (req, res) => {
   });
 });
 
-// View-model endpoints (hydrated responses)
-app.get("/api/view/tag-groups", async (req, res) => {
-  try {
-    const data = await viewModelsService.getTagGroupsWithTags();
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch tag groups with tags", details: (error as Error).message });
-  }
-});
-
-app.get("/api/view/topics/:id/schema", async (req, res) => {
-  try {
-    const topicId = Number(req.params.id);
-    const data = await viewModelsService.getTopicWithSchema(topicId);
-    if (!data) {
-      res.status(404).json({ error: "Topic not found" });
-      return;
-    }
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch topic schema", details: (error as Error).message });
-  }
-});
-
-app.get("/api/view/items/:id/tags", async (req, res) => {
-  try {
-    const itemId = Number(req.params.id);
-    const data = await viewModelsService.getItemWithTags(itemId);
-    if (!data) {
-      res.status(404).json({ error: "Item not found" });
-      return;
-    }
-    res.json(data);
-  } catch (error) {
-    res.status(500).json({ error: "Failed to fetch item with tags", details: (error as Error).message });
-  }
-});
-
-// tsoa controllers handle /api/files, /api/items, /api/item-tags
+// tsoa controllers handle /api/* routes
 RegisterRoutes(app);
-// All API endpoints handled by tsoa controllers
-console.log('Registering tsoa controllers for all API endpoints');
 app.use("/served", express.static(indexRoot));
 
 // Serve generated Swagger UI if spec exists at dist/swagger.json
