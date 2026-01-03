@@ -22,14 +22,212 @@ import { TopicItemsController } from './controllers/TopicItemsController';
 import { TopicsController } from './controllers/TopicsController';
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 import { TopicTagGroupsController } from './controllers/TopicTagGroupsController';
+// WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+import { ViewModelsController } from './controllers/ViewModelsController';
 import type { RequestHandler } from 'express';
 import * as express from 'express';
 const multer = require('multer');
-const upload = multer();
+const path = require('path');
+const fs = require('fs');
+
+// Configure multer to save directly to INDEX_FOLDER with original filename
+const indexFolder = process.env.INDEX_FOLDER ?? 'public';
+const uploadDir = path.isAbsolute(indexFolder) ? indexFolder : path.resolve(process.cwd(), indexFolder);
+
+// Ensure upload directory exists
+if (!fs.existsSync(uploadDir)) {
+  fs.mkdirSync(uploadDir, { recursive: true });
+}
+
+const storage = multer.diskStorage({
+  destination: (req: any, file: any, cb: any) => {
+    cb(null, uploadDir);
+  },
+  filename: (req: any, file: any, cb: any) => {
+    cb(null, file.originalname);
+  }
+});
+
+const upload = multer({ storage });
 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
 const models: TsoaRoute.Models = {
+    "BackupSuccess": {
+        "dataType": "refObject",
+        "properties": {
+            "ok": {"dataType":"enum","enums":[true],"required":true},
+            "message": {"dataType":"string","required":true},
+            "path": {"dataType":"string","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BackupFailure": {
+        "dataType": "refObject",
+        "properties": {
+            "ok": {"dataType":"enum","enums":[false],"required":true},
+            "error": {"dataType":"string","required":true},
+            "details": {"dataType":"string"},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "BackupResult": {
+        "dataType": "refAlias",
+        "type": {"dataType":"union","subSchemas":[{"ref":"BackupSuccess"},{"ref":"BackupFailure"}],"validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ApiError": {
+        "dataType": "refObject",
+        "properties": {
+            "error": {"dataType":"string","required":true},
+            "details": {"dataType":"string"},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Id": {
+        "dataType": "refAlias",
+        "type": {"dataType":"double","validators":{}},
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "File": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "path": {"dataType":"string","required":true},
+            "type": {"dataType":"string","required":true},
+            "parent_id": {"dataType":"union","subSchemas":[{"ref":"Id"},{"dataType":"enum","enums":[null]}],"required":true},
+            "size": {"dataType":"union","subSchemas":[{"dataType":"double"},{"dataType":"enum","enums":[null]}],"required":true},
+            "last_modified": {"dataType":"string","required":true},
+            "subtype": {"dataType":"string","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "FileMoveResult": {
+        "dataType": "refObject",
+        "properties": {
+            "fileId": {"dataType":"double","required":true},
+            "status": {"dataType":"union","subSchemas":[{"dataType":"enum","enums":["moved"]},{"dataType":"enum","enums":["not_found"]},{"dataType":"enum","enums":["error"]}],"required":true},
+            "newPath": {"dataType":"string"},
+            "message": {"dataType":"string"},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Item": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "name": {"dataType":"string","required":true},
+            "link": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "image_url": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "type": {"dataType":"string","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ItemTag": {
+        "dataType": "refObject",
+        "properties": {
+            "item_id": {"ref":"Id","required":true},
+            "tag_id": {"ref":"Id","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TagGroup": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "name": {"dataType":"string","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TagGroupTag": {
+        "dataType": "refObject",
+        "properties": {
+            "tag_group_id": {"ref":"Id","required":true},
+            "tag_id": {"ref":"Id","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Tag": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "group": {"dataType":"string","required":true},
+            "name": {"dataType":"string","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TopicItem": {
+        "dataType": "refObject",
+        "properties": {
+            "topic_id": {"ref":"Id","required":true},
+            "item_id": {"ref":"Id","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "Topic": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TopicTagGroup": {
+        "dataType": "refObject",
+        "properties": {
+            "topic_id": {"ref":"Id","required":true},
+            "tag_group_id": {"ref":"Id","required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TagGroupWithTags": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "name": {"dataType":"string","required":true},
+            "tags": {"dataType":"array","array":{"dataType":"refObject","ref":"Tag"},"required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "TopicWithSchema": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "name": {"dataType":"string","required":true},
+            "description": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "tag_groups": {"dataType":"array","array":{"dataType":"refObject","ref":"TagGroupWithTags"},"required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+    "ItemWithTags": {
+        "dataType": "refObject",
+        "properties": {
+            "id": {"ref":"Id","required":true},
+            "name": {"dataType":"string","required":true},
+            "link": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "image_url": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
+            "type": {"dataType":"string","required":true},
+            "tags": {"dataType":"array","array":{"dataType":"refObject","ref":"Tag"},"required":true},
+        },
+        "additionalProperties": true,
+    },
+    // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 };
 const validationService = new ValidationService(models);
 
@@ -1112,6 +1310,80 @@ export function RegisterRoutes(app: express.Router) {
 
 
               const promise = controller.deleteTopicTagGroup.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, undefined, next);
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        app.get('/api/view/tag-groups',
+            ...(fetchMiddlewares<RequestHandler>(ViewModelsController)),
+            ...(fetchMiddlewares<RequestHandler>(ViewModelsController.prototype.getTagGroupsWithTags)),
+
+            function ViewModelsController_getTagGroupsWithTags(request: any, response: any, next: any) {
+            const args = {
+            };
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = getValidatedArgs(args, request, response);
+
+                const controller = new ViewModelsController();
+
+
+              const promise = controller.getTagGroupsWithTags.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, undefined, next);
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        app.get('/api/view/topics/:id/schema',
+            ...(fetchMiddlewares<RequestHandler>(ViewModelsController)),
+            ...(fetchMiddlewares<RequestHandler>(ViewModelsController.prototype.getTopicWithSchema)),
+
+            function ViewModelsController_getTopicWithSchema(request: any, response: any, next: any) {
+            const args = {
+                    id: {"in":"path","name":"id","required":true,"dataType":"double"},
+            };
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = getValidatedArgs(args, request, response);
+
+                const controller = new ViewModelsController();
+
+
+              const promise = controller.getTopicWithSchema.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, undefined, next);
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        app.get('/api/view/items/:id/tags',
+            ...(fetchMiddlewares<RequestHandler>(ViewModelsController)),
+            ...(fetchMiddlewares<RequestHandler>(ViewModelsController.prototype.getItemWithTags)),
+
+            function ViewModelsController_getItemWithTags(request: any, response: any, next: any) {
+            const args = {
+                    id: {"in":"path","name":"id","required":true,"dataType":"double"},
+            };
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = getValidatedArgs(args, request, response);
+
+                const controller = new ViewModelsController();
+
+
+              const promise = controller.getItemWithTags.apply(controller, validatedArgs as any);
               promiseHandler(controller, promise, response, undefined, next);
             } catch (err) {
                 return next(err);

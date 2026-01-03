@@ -39,27 +39,37 @@ export class FilesService {
       throw new Error('Invalid file upload: file or filename missing');
     }
 
+    // File is already saved to INDEX_FOLDER by multer with original filename
+    // No need to move it, just verify it exists
     const targetPath = path.join(this.indexFolder, file.originalname);
     
     try {
-      await fs.rename(file.path, targetPath);
+      await fs.access(targetPath);
     } catch (error) {
-      console.error('Error moving uploaded file:', error);
-      // Cleanup temp file if it still exists
-      try {
-        await fs.unlink(file.path);
-      } catch {}
-      throw new Error(`Failed to move uploaded file: ${(error as Error).message}`);
+      throw new Error(`Uploaded file not found at expected location: ${targetPath}`);
     }
 
     const client = await this.pool.connect();
     try {
-      const result = await client.query(
+      await client.query('BEGIN');
+      
+      // Insert into files table
+      const fileResult = await client.query(
         `INSERT INTO files (path, type, size, last_modified, subtype) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
         [file.originalname, 'file', file.size, new Date().toISOString(), file.mimetype]
       );
-      return result.rows[0];
+      const fileRecord = fileResult.rows[0];
+      
+      // Also insert into items table
+      await client.query(
+        `INSERT INTO items (name, link, type) VALUES ($1, $2, $3)`,
+        [file.originalname, `/served/${file.originalname}`, 'file']
+      );
+      
+      await client.query('COMMIT');
+      return fileRecord;
     } catch (error) {
+      await client.query('ROLLBACK');
       console.error('Error inserting file into database:', error);
       // Cleanup uploaded file if DB insert fails
       try {

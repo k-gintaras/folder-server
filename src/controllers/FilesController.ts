@@ -44,6 +44,20 @@ export class FilesController extends Controller {
   @Post('upload')
   public async uploadFile(@UploadedFile() file: Express.Multer.File): Promise<File | ApiError> {
     try {
+      console.log('uploadFile received:', {
+        fileExists: !!file,
+        originalname: file?.originalname,
+        filename: file?.filename,
+        path: file?.path,
+        size: file?.size,
+        mimetype: file?.mimetype
+      });
+      
+      if (!file) {
+        this.setStatus(400);
+        return { error: 'No file provided', details: 'File upload failed - file object is null' };
+      }
+      
       this.setStatus(201);
       return await filesService.uploadFile(file);
     } catch (error) {

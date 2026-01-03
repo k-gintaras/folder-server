@@ -6,6 +6,10 @@
     "specVersion": 3
   },
   "routes": {
-    "routesDir": "src"
+    "routesDir": "src",
+    "middleware": "express",
+    "multerOpts": {
+      "dest": "uploads/"
+    }
   }
 }
