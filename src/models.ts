@@ -67,7 +67,6 @@ export interface FileMoveResult {
 
 export interface Tag {
   id: Id;
-  group: string;              // quoted column name: "group"
   name: string;
 }
 

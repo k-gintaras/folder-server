@@ -4,19 +4,16 @@ import { Tag } from '../models';
 export class TagsService {
   constructor(private pool: Pool) {}
 
-  async createTag(data: { group: string; name: string }): Promise<Tag> {
+  async createTag(data: { name: string }): Promise<Tag> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Tag name is required');
-    }
-    if (!data.group || data.group.trim() === '') {
-      throw new Error('Tag group is required');
     }
 
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'INSERT INTO tags ("group", name) VALUES ($1, $2) RETURNING *',
-        [data.group, data.name]
+        'INSERT INTO tags (name) VALUES ($1) RETURNING *',
+        [data.name]
       );
       return result.rows[0];
     } catch (error) {
@@ -25,7 +22,7 @@ export class TagsService {
       
       // Handle duplicate constraint
       if (err.code === '23505') {
-        throw new Error('A tag with this name and group already exists');
+        throw new Error('A tag with this name already exists');
       }
       
       throw new Error(`Failed to create tag: ${err.message}`);
@@ -60,19 +57,16 @@ export class TagsService {
     }
   }
 
-  async updateTag(id: number, data: { group: string; name: string }): Promise<Tag | null> {
+  async updateTag(id: number, data: { name: string }): Promise<Tag | null> {
     if (!data.name || data.name.trim() === '') {
       throw new Error('Tag name is required');
-    }
-    if (!data.group || data.group.trim() === '') {
-      throw new Error('Tag group is required');
     }
 
     const client = await this.pool.connect();
     try {
       const result = await client.query(
-        'UPDATE tags SET "group" = $1, name = $2 WHERE id = $3 RETURNING *',
-        [data.group, data.name, id]
+        'UPDATE tags SET name = $1 WHERE id = $2 RETURNING *',
+        [data.name, id]
       );
       
       if (result.rowCount === 0) {
@@ -86,7 +80,7 @@ export class TagsService {
       
       // Handle duplicate constraint
       if (err.code === '23505') {
-        throw new Error('A tag with this name and group already exists');
+        throw new Error('A tag with this name already exists');
       }
       
       throw new Error(`Failed to update tag: ${err.message}`);

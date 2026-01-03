@@ -27,28 +27,8 @@ import { ViewModelsController } from './controllers/ViewModelsController';
 import type { RequestHandler } from 'express';
 import * as express from 'express';
 const multer = require('multer');
-const path = require('path');
-const fs = require('fs');
-
-// Configure multer to save directly to INDEX_FOLDER with original filename
-const indexFolder = process.env.INDEX_FOLDER ?? 'public';
-const uploadDir = path.isAbsolute(indexFolder) ? indexFolder : path.resolve(process.cwd(), indexFolder);
-
-// Ensure upload directory exists
-if (!fs.existsSync(uploadDir)) {
-  fs.mkdirSync(uploadDir, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (req: any, file: any, cb: any) => {
-    cb(null, uploadDir);
-  },
-  filename: (req: any, file: any, cb: any) => {
-    cb(null, file.originalname);
-  }
-});
-
-const upload = multer({ storage });
+const multerStorage = require('./multer-config');
+const upload = multer({ storage: multerStorage });
 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 
@@ -362,13 +342,14 @@ export function RegisterRoutes(app: express.Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.post('/api/files/move',
+        app.post('/api/files/move/:id/:folderName',
             ...(fetchMiddlewares<RequestHandler>(FilesController)),
             ...(fetchMiddlewares<RequestHandler>(FilesController.prototype.moveFile)),
 
             function FilesController_moveFile(request: any, response: any, next: any) {
             const args = {
-                    body: {"in":"body","name":"body","required":true,"dataType":"nestedObjectLiteral","nestedProperties":{"newFolder":{"dataType":"string","required":true},"fileId":{"dataType":"double","required":true}}},
+                    id: {"in":"path","name":"id","required":true,"dataType":"double"},
+                    folderName: {"in":"path","name":"folderName","required":true,"dataType":"string"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
@@ -387,13 +368,14 @@ export function RegisterRoutes(app: express.Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
-        app.post('/api/files/move-multiple',
+        app.post('/api/files/move-multiple/:ids/:folderName',
             ...(fetchMiddlewares<RequestHandler>(FilesController)),
             ...(fetchMiddlewares<RequestHandler>(FilesController.prototype.moveMultiple)),
 
             function FilesController_moveMultiple(request: any, response: any, next: any) {
             const args = {
-                    body: {"in":"body","name":"body","required":true,"dataType":"nestedObjectLiteral","nestedProperties":{"newFolder":{"dataType":"string","required":true},"fileIds":{"dataType":"array","array":{"dataType":"double"},"required":true}}},
+                    ids: {"in":"path","name":"ids","required":true,"dataType":"string"},
+                    folderName: {"in":"path","name":"folderName","required":true,"dataType":"string"},
             };
 
             // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa

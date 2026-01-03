@@ -58,9 +58,13 @@ export class FilesController extends Controller {
         return { error: 'No file provided', details: 'File upload failed - file object is null' };
       }
       
+      console.log('Processing file upload for:', file.originalname);
       this.setStatus(201);
-      return await filesService.uploadFile(file);
+      const result = await filesService.uploadFile(file);
+      console.log('File upload completed successfully:', result.path);
+      return result;
     } catch (error) {
+      console.error('File upload error:', error);
       this.setStatus(500);
       return { error: 'Failed to upload file', details: (error as Error).message };
     }
@@ -87,10 +91,10 @@ export class FilesController extends Controller {
   /**
    * Move a file
    */
-  @Post('move')
-  public async moveFile(@Body() body: { fileId: number; newFolder: string }): Promise<File | ApiError> {
+  @Post('move/:id/:folderName')
+  public async moveFile(@Path() id: number, @Path() folderName: string): Promise<File | ApiError> {
     try {
-      const moved = await filesService.moveFile(body.fileId, body.newFolder);
+      const moved = await filesService.moveFile(id, folderName);
       if (!moved) {
         this.setStatus(404);
         return { error: 'File not found' };
@@ -105,10 +109,11 @@ export class FilesController extends Controller {
   /**
    * Move multiple files
    */
-  @Post('move-multiple')
-  public async moveMultiple(@Body() body: { fileIds: number[]; newFolder: string }): Promise<FileMoveResult[] | ApiError> {
+  @Post('move-multiple/:ids/:folderName')
+  public async moveMultiple(@Path() ids: string, @Path() folderName: string): Promise<FileMoveResult[] | ApiError> {
     try {
-      return await filesService.moveMultiple(body.fileIds, body.newFolder);
+      const fileIds = ids.split(',').map(id => parseInt(id, 10));
+      return await filesService.moveMultiple(fileIds, folderName);
     } catch (error) {
       this.setStatus(500);
       return { error: 'Failed to move files', details: (error as Error).message };

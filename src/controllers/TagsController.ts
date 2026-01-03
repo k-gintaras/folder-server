@@ -41,7 +41,7 @@ export class TagsController extends Controller {
    */
   @SuccessResponse('201', 'Created')
   @Post('/')
-  public async createTag(@Body() body: { group: string; name: string }): Promise<Tag | ApiError> {
+  public async createTag(@Body() body: { name: string }): Promise<Tag | ApiError> {
     try {
       this.setStatus(201);
       return await tagsService.createTag(body);
@@ -60,7 +60,7 @@ export class TagsController extends Controller {
    * Update a tag by ID
    */
   @Put('{id}')
-  public async updateTag(@Path() id: number, @Body() body: { group: string; name: string }): Promise<Tag | ApiError> {
+  public async updateTag(@Path() id: number, @Body() body: { name: string }): Promise<Tag | ApiError> {
     try {
       const updated = await tagsService.updateTag(id, body);
       if (!updated) {
