@@ -5,7 +5,7 @@
   "description": "TypeScript + Express folder server that verifies a Postgres connection and exposes directory indexing.",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsc && npm run tsoa:spec",
+    "build": "tsoa routes && tsc && npm run tsoa:spec",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "tsoa:spec": "tsoa spec -o dist/swagger.json",
@@ -13,7 +13,8 @@
     "docs:quickref": "node scripts/generate-api-quickref.js",
     "reindex": "curl -X POST http://localhost:4000/api/reindex?force=true",
     "docker:build": "docker build -t folder-server .",
-    "docker:run": "docker-compose up"
+    "docker:run": "docker-compose up",
+    "restart": "npm run build && docker-compose down && docker-compose build --no-cache && docker-compose up -d"
   },
   "engines": {
     "node": ">=18"
