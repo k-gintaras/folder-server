@@ -14,7 +14,13 @@
     "reindex": "curl -X POST http://localhost:4000/api/reindex?force=true",
     "docker:build": "docker build -t folder-server .",
     "docker:run": "docker-compose up",
-    "restart": "npm run build && docker-compose down && docker system prune -f && docker-compose build --no-cache && docker-compose up -d"
+    "restart": "npm run build && docker-compose down && docker system prune -f && docker-compose build --no-cache && docker-compose up -d",
+    "restart:app_a": "npm run build && docker-compose up -d app_a",
+    "restart:app_b": "npm run build && docker-compose up -d app_b",
+    "stop:app_a": "docker-compose stop app_a",
+    "stop:app_b": "docker-compose stop app_b",
+    "logs:app_a": "docker-compose logs -f app_a",
+    "logs:app_b": "docker-compose logs -f app_b"
   },
   "engines": {
     "node": ">=18"

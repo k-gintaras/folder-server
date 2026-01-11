@@ -5,36 +5,57 @@ services:
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
-      POSTGRES_DB: ${DB_NAME}
+      POSTGRES_DB: ${DB_DEFAULT_DB:-postgres}
     ports:
-      - "${DB_HOST_PORT:-5432}:${DB_CONTAINER_PORT:-5432}"
+      - "${DB_HOST_PORT:-5432}:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
-      - ./schema.sql:/docker-entrypoint-initdb.d/schema.sql
+      - ./schema.sql:/docker-entrypoint-initdb.d/00-schema.sql
+      - ./init-multi-db.sh:/docker-entrypoint-initdb.d/01-init-multi-db.sh
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_DEFAULT_DB:-postgres}"]
       interval: 10s
       timeout: 5s
       retries: 5
 
-  app:
+  app_a:
     build:
       context: .
       dockerfile: Dockerfile
     image: folder-server-app
     environment:
-      PORT: ${APP_CONTAINER_PORT:-4000}
-      APP_HOST_PORT: ${APP_HOST_PORT:-4000}
+      PORT: 4000
       INDEX_FOLDER: /mnt/index-folder
       DB_HOST: postgres
-      DB_PORT: ${DB_CONTAINER_PORT:-5432}
+      DB_PORT: 5432
       DB_USER: ${DB_USER}
       DB_PASSWORD: ${DB_PASSWORD}
-      DB_NAME: ${DB_NAME}
+      DB_NAME: folder_a
     ports:
-      - "${APP_HOST_PORT:-4000}:${APP_CONTAINER_PORT:-4000}"
+      - "4000:4000"
     volumes:
-      - ${INDEX_FOLDER}:/mnt/index-folder
+      - ${INDEX_FOLDER_A}:/mnt/index-folder
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  app_b:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: folder-server-app
+    environment:
+      PORT: 4001
+      INDEX_FOLDER: /mnt/index-folder
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_USER: ${DB_USER}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_NAME: folder_b
+    ports:
+      - "4001:4001"
+    volumes:
+      - ${INDEX_FOLDER_B}:/mnt/index-folder
     depends_on:
       postgres:
         condition: service_healthy
