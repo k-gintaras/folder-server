@@ -108,4 +108,23 @@ export class ItemsService {
       client.release();
     }
   }
+
+  async getItemsByTopic(topicId: number): Promise<Item[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        `SELECT i.* FROM items i
+         INNER JOIN topic_items ti ON i.id = ti.item_id
+         WHERE ti.topic_id = $1
+         ORDER BY i.name ASC`,
+        [topicId]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error(`Error fetching items for topic ${topicId}:`, error);
+      throw new Error(`Failed to fetch items for topic: ${(error as Error).message}`);
+    } finally {
+      client.release();
+    }
+  }
 }

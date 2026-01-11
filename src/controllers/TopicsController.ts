@@ -1,6 +1,7 @@
 import { Body, Controller, Delete, Get, Path, Post, Put, Route, SuccessResponse } from 'tsoa';
 import { TopicsService } from '../services/TopicsService';
-import { Topic, ApiError } from '../models';
+import { ItemsService } from '../services/ItemsService';
+import { Topic, Item, ApiError } from '../models';
 import { Pool } from 'pg';
 
 const pool = new Pool({
@@ -12,6 +13,7 @@ const pool = new Pool({
   max: 5
 });
 const topicsService = new TopicsService(pool);
+const itemsService = new ItemsService(pool);
 
 @Route('api/topics')
 export class TopicsController extends Controller {
@@ -34,6 +36,25 @@ export class TopicsController extends Controller {
       return { error: 'Topic not found' };
     }
     return topic;
+  }
+
+  /**
+   * Get all items belonging to a specific topic
+   */
+  @Get('{id}/items')
+  public async getItemsByTopic(@Path('id') topicId: number): Promise<Item[] | ApiError> {
+    try {
+      // Verify topic exists first
+      const topic = await topicsService.getTopicById(topicId);
+      if (!topic) {
+        this.setStatus(404);
+        return { error: 'Topic not found' };
+      }
+      return await itemsService.getItemsByTopic(topicId);
+    } catch (error) {
+      this.setStatus(500);
+      return { error: 'Failed to fetch items for topic', details: (error as Error).message };
+    }
   }
 
   /**
