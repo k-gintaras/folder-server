@@ -68,21 +68,23 @@ export class FilesService {
         [file.originalname]
       );
       
+      const nameWithoutExt = path.parse(file.originalname).name;
+      
       let fileRecord;
       if (existingResult.rowCount && existingResult.rowCount > 0) {
         // Database record exists - update it (handles case where physical file was deleted)
         const fileId = existingResult.rows[0].id;
         const fileResult = await client.query(
-          `UPDATE files SET type = $1, size = $2, last_modified = $3, subtype = $4 WHERE id = $5 RETURNING *`,
-          ['file', file.size, new Date().toISOString(), file.mimetype, fileId]
+          `UPDATE files SET type = $1, size = $2, last_modified = $3, subtype = $4, name = $5 WHERE id = $6 RETURNING *`,
+          ['file', file.size, new Date().toISOString(), file.mimetype, nameWithoutExt, fileId]
         );
         fileRecord = fileResult.rows[0];
         console.log(`Updated existing file record for: ${file.originalname} (file was re-uploaded)`);
       } else {
         // No database record - create new entries
         const fileResult = await client.query(
-          `INSERT INTO files (path, type, size, last_modified, subtype) VALUES ($1, $2, $3, $4, $5) RETURNING *`,
-          [file.originalname, 'file', file.size, new Date().toISOString(), file.mimetype]
+          `INSERT INTO files (path, type, size, last_modified, subtype, name) VALUES ($1, $2, $3, $4, $5, $6) RETURNING *`,
+          [file.originalname, 'file', file.size, new Date().toISOString(), file.mimetype, nameWithoutExt]
         );
         fileRecord = fileResult.rows[0];
         
@@ -252,6 +254,23 @@ export class FilesService {
         }
       }
       return results;
+    } finally {
+      client.release();
+    }
+  }
+
+  async searchFilesByName(searchName: string): Promise<File[]> {
+    const client = await this.pool.connect();
+    try {
+      // Search for files where name contains the search term (case-insensitive)
+      const result = await client.query(
+        `SELECT * FROM files WHERE name ILIKE $1 AND type = 'file' ORDER BY name ASC`,
+        [`%${searchName}%`]
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error searching files by name:', error);
+      throw new Error(`Failed to search files: ${(error as Error).message}`);
     } finally {
       client.release();
     }

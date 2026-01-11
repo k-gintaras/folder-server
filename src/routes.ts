@@ -76,6 +76,7 @@ const models: TsoaRoute.Models = {
         "properties": {
             "id": {"ref":"Id","required":true},
             "path": {"dataType":"string","required":true},
+            "name": {"dataType":"union","subSchemas":[{"dataType":"string"},{"dataType":"enum","enums":[null]}],"required":true},
             "type": {"dataType":"string","required":true},
             "parent_id": {"dataType":"union","subSchemas":[{"ref":"Id"},{"dataType":"enum","enums":[null]}],"required":true},
             "size": {"dataType":"union","subSchemas":[{"dataType":"double"},{"dataType":"enum","enums":[null]}],"required":true},
@@ -392,6 +393,31 @@ export function RegisterRoutes(app: express.Router) {
             }
         });
         // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        app.get('/api/files/search/:name',
+            ...(fetchMiddlewares<RequestHandler>(FilesController)),
+            ...(fetchMiddlewares<RequestHandler>(FilesController.prototype.searchFilesByName)),
+
+            function FilesController_searchFilesByName(request: any, response: any, next: any) {
+            const args = {
+                    name: {"in":"path","name":"name","required":true,"dataType":"string"},
+            };
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = getValidatedArgs(args, request, response);
+
+                const controller = new FilesController();
+
+
+              const promise = controller.searchFilesByName.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, undefined, next);
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
         app.get('/api/items',
             ...(fetchMiddlewares<RequestHandler>(ItemsController)),
             ...(fetchMiddlewares<RequestHandler>(ItemsController.prototype.getItems)),
@@ -511,6 +537,30 @@ export function RegisterRoutes(app: express.Router) {
 
 
               const promise = controller.deleteItem.apply(controller, validatedArgs as any);
+              promiseHandler(controller, promise, response, undefined, next);
+            } catch (err) {
+                return next(err);
+            }
+        });
+        // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+        app.get('/api/items/unassigned',
+            ...(fetchMiddlewares<RequestHandler>(ItemsController)),
+            ...(fetchMiddlewares<RequestHandler>(ItemsController.prototype.getUnassignedItems)),
+
+            function ItemsController_getUnassignedItems(request: any, response: any, next: any) {
+            const args = {
+            };
+
+            // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
+
+            let validatedArgs: any[] = [];
+            try {
+                validatedArgs = getValidatedArgs(args, request, response);
+
+                const controller = new ItemsController();
+
+
+              const promise = controller.getUnassignedItems.apply(controller, validatedArgs as any);
               promiseHandler(controller, promise, response, undefined, next);
             } catch (err) {
                 return next(err);

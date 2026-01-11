@@ -91,4 +91,12 @@ export class ItemsController extends Controller {
       return { error: 'Failed to delete item', details: (error as Error).message };
     }
   }
+
+  /**
+   * Get all unassigned items (items not assigned to any topic)
+   */
+  @Get('/unassigned')
+  public async getUnassignedItems(): Promise<Item[]> {
+    return itemsService.getUnassignedItems();
+  }
 }

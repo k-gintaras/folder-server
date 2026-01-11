@@ -14,7 +14,7 @@
     "reindex": "curl -X POST http://localhost:4000/api/reindex?force=true",
     "docker:build": "docker build -t folder-server .",
     "docker:run": "docker-compose up",
-    "restart": "npm run build && docker-compose down && docker-compose build --no-cache && docker-compose up -d"
+    "restart": "npm run build && docker-compose down && docker system prune -f && docker-compose build --no-cache && docker-compose up -d"
   },
   "engines": {
     "node": ">=18"

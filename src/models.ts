@@ -51,6 +51,7 @@ export interface ApiError {
 export interface File {
   id: Id;
   path: string;
+  name: string | null;
   type: string;               // file | directory | etc.
   parent_id: Id | null;
   size: number | null;

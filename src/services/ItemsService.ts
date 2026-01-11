@@ -93,4 +93,19 @@ export class ItemsService {
       client.release();
     }
   }
+
+  async getUnassignedItems(): Promise<Item[]> {
+    const client = await this.pool.connect();
+    try {
+      const result = await client.query(
+        'SELECT * FROM items WHERE id NOT IN (SELECT DISTINCT item_id FROM topic_items) ORDER BY name ASC'
+      );
+      return result.rows;
+    } catch (error) {
+      console.error('Error fetching unassigned items:', error);
+      throw new Error(`Failed to fetch unassigned items: ${(error as Error).message}`);
+    } finally {
+      client.release();
+    }
+  }
 }

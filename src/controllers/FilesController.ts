@@ -119,4 +119,12 @@ export class FilesController extends Controller {
       return { error: 'Failed to move files', details: (error as Error).message };
     }
   }
+
+  /**
+   * Search files by name (without extension)
+   */
+  @Get('search/{name}')
+  public async searchFilesByName(@Path() name: string): Promise<File[]> {
+    return filesService.searchFilesByName(name);
+  }
 }

@@ -1,6 +1,6 @@
 import { Pool } from "pg";
 import { ensureDatabase } from "./init-database";
-import { scanDirectory } from "./index-folder";
+import { scanDirectoryBossy } from "./index-folder";
 import path from "path";
 
 export async function initializeServer(pool: Pool, indexRoot: string, forceIndex = false) {
@@ -16,8 +16,12 @@ export async function initializeServer(pool: Pool, indexRoot: string, forceIndex
       return;
     }
 
-    console.log(`➡️ Indexing ${indexRoot}`);
-    await scanDirectory(client, indexRoot, indexRoot, null);
+    console.log(`➡️ Hard reindex - clearing files and items tables`);
+    await client.query("DELETE FROM files");
+    await client.query("DELETE FROM items WHERE type = 'file'");
+    
+    console.log(`➡️ Indexing ${indexRoot} with duplicate detection`);
+    await scanDirectoryBossy(client, indexRoot);
     console.log("✅ Initial index complete");
   } finally {
     client.release();
