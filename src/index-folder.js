@@ -115,7 +115,7 @@ async function indexSingleItem(db, fullPath, rootDirectory, parentId = null) {
 
       if (!isDirectory) {
         // BOSS RULE 2: heal by item name (not by link)
-        const itemName = baseName; // keep existing behavior: items.name is filename with ext
+        const itemName = nameWithoutExt; // store without extension, like files table
         const upd = await db.query(
           `UPDATE items SET link = $1 WHERE type='file' AND name = $2`,
           [relativePath, itemName]
@@ -140,7 +140,7 @@ async function indexSingleItem(db, fullPath, rootDirectory, parentId = null) {
     );
 
     if (!isDirectory) {
-      const itemName = baseName;
+      const itemName = nameWithoutExt; // store without extension, like files table
 
       // BOSS RULE 2 on insert too: if item already exists, update link; else create.
       const upd = await db.query(

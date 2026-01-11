@@ -152,6 +152,10 @@ Base URL: http://<host>:<port>
   - Params: none
   - Returns: DB row(s) JSON
 
+- GET /api/items/unassigned
+  - Params: none
+  - Returns: DB row(s) JSON
+
 - GET /api/items/:id
   - Params: path: id
   - Returns: DB row(s) JSON

@@ -24,6 +24,14 @@ export class ItemsController extends Controller {
   }
 
   /**
+   * Get all unassigned items (items not assigned to any topic)
+   */
+  @Get('/unassigned')
+  public async getUnassignedItems(): Promise<Item[]> {
+    return itemsService.getUnassignedItems();
+  }
+
+  /**
    * Get an item by ID
    */
   @Get('{id}')
@@ -90,13 +98,5 @@ export class ItemsController extends Controller {
       this.setStatus(500);
       return { error: 'Failed to delete item', details: (error as Error).message };
     }
-  }
-
-  /**
-   * Get all unassigned items (items not assigned to any topic)
-   */
-  @Get('/unassigned')
-  public async getUnassignedItems(): Promise<Item[]> {
-    return itemsService.getUnassignedItems();
   }
 }
