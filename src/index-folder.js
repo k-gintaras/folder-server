@@ -94,7 +94,20 @@ async function indexSingleItem(db, fullPath, rootDirectory, parentId = null) {
   const relativePath = computeRelativePath(fullPath, rootDirectory);
 
   try {
-    const stats = await stat(fullPath);
+    // Check if file exists before trying to stat it
+    if (!fs.existsSync(fullPath)) {
+      console.warn(`⚠️ File no longer exists, skipping: ${fullPath}`);
+      return { id: null, status: 'skipped', type: null };
+    }
+    
+    let stats;
+    try {
+      stats = await stat(fullPath);
+    } catch (statError) {
+      console.warn(`⚠️ Cannot stat file (permission or encoding issue), skipping: ${fullPath}`, statError?.message || statError);
+      return { id: null, status: 'skipped', type: null };
+    }
+    
     const isDirectory = stats.isDirectory();
     const type = isDirectory ? 'directory' : 'file';
     const subtype = isDirectory ? 'text' : getFileSubtype(fullPath);

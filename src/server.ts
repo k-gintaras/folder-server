@@ -49,8 +49,6 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-const upload = multer({ dest: "uploads/" });
-
 
 app.get("/", (req, res) => {
   res.json({

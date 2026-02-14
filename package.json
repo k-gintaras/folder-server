@@ -5,7 +5,7 @@
   "description": "TypeScript + Express folder server that verifies a Postgres connection and exposes directory indexing.",
   "main": "dist/server.js",
   "scripts": {
-    "build": "tsoa routes && tsc && npm run tsoa:spec",
+    "build": "tsoa routes && node scripts/patch-routes.js && tsc && npm run tsoa:spec",
     "start": "node dist/server.js",
     "dev": "ts-node-dev --respawn --transpile-only src/server.ts",
     "tsoa:spec": "tsoa spec -o dist/swagger.json",

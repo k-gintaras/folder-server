@@ -27,7 +27,7 @@ import { ViewModelsController } from './controllers/ViewModelsController';
 import type { RequestHandler } from 'express';
 import * as express from 'express';
 const multer = require('multer');
-const upload = multer();
+const upload = require('../multer-config');
 
 // WARNING: This file was auto-generated with tsoa. Please do not modify it. Re-run tsoa to re-generate this file: https://github.com/lukeautry/tsoa
 

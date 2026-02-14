@@ -29,5 +29,5 @@ const storage = multer.diskStorage({
   }
 });
 
-// Export the storage configuration directly
-module.exports = storage;
+// Export the complete multer instance with storage configuration
+module.exports = multer({ storage });

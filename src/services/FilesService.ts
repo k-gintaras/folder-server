@@ -159,7 +159,16 @@ export class FilesService {
       if (result.rowCount === 0) return null;
       
       const file = result.rows[0];
-      const oldPath = path.isAbsolute(file.path) ? file.path : path.join(this.indexFolder, file.path);
+      
+      // Only allow moving files, not folders
+      if (file.type === 'directory') {
+        throw new Error('Moving folders is not supported. Folders contain nested items with complex path dependencies that would require updating multiple database records and item links. Please move individual files instead.');
+      }
+      
+      // file.path starts with / but is relative to indexFolder (e.g., /2022/file.jpg)
+      // Remove leading slash and join with indexFolder
+      const relPath = file.path.startsWith('/') ? file.path.substring(1) : file.path;
+      const oldPath = path.join(this.indexFolder, relPath);
       
       // Resolve the new folder path relative to indexFolder
       const newFolderPath = path.isAbsolute(newFolder) ? newFolder : path.join(this.indexFolder, newFolder);
@@ -175,10 +184,10 @@ export class FilesService {
       const fileName = path.basename(oldPath);
       const newPath = path.join(newFolderPath, fileName);
       
-      // Store the relative path for the database (relative to indexFolder)
-      const relativePath = path.isAbsolute(newFolder) 
+      // Store the relative path for the database (with leading slash to match existing format)
+      const relativePath = '/' + (path.isAbsolute(newFolder) 
         ? path.relative(this.indexFolder, newPath)
-        : path.join(newFolder, fileName);
+        : path.join(newFolder, fileName));
       
       try {
         await fs.rename(oldPath, newPath);
@@ -187,7 +196,15 @@ export class FilesService {
         throw new Error(`Failed to move file: ${(error as Error).message}`);
       }
       
-      await client.query('UPDATE files SET path = $1 WHERE id = $2', [relativePath, fileId]);
+        await client.query('UPDATE files SET path = $1 WHERE id = $2', [relativePath, fileId]);
+      
+        // Also update the items table link
+        const fileNameWithoutExt = path.parse(fileName).name;
+        await client.query(
+          'UPDATE items SET link = $1 WHERE name = $2 AND type = $3',
+          [relativePath, fileNameWithoutExt, 'file']
+        );
+      
       return { ...file, path: relativePath };
     } catch (error) {
       console.error(`Error in moveFile for ${fileId}:`, error);
@@ -231,6 +248,17 @@ export class FilesService {
           }
           
           const file = result.rows[0];
+          
+          // Only allow moving files, not folders
+          if (file.type === 'directory') {
+            results.push({
+              fileId,
+              status: 'error',
+              message: 'Moving folders is not supported. Folders contain nested items with complex path dependencies that would require updating multiple database records and item links. Please move individual files instead.'
+            });
+            continue;
+          }
+          
           const oldPath = path.isAbsolute(file.path) ? file.path : path.join(this.indexFolder, file.path);
           const fileName = path.basename(oldPath);
           const newPath = path.join(newFolderPath, fileName);
